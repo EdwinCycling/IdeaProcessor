@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
 import Footer from './components/Footer';
+import CookieConsent from './components/CookieConsent';
 
 // Modals & Screens
 import AccessModal from './components/AccessModal';
@@ -23,6 +24,16 @@ const App: React.FC = () => {
   
   // Lifted State for Access Code (shared between Admin Dashboard and Access Modal)
   const [accessCode, setAccessCode] = useState(APP_CONFIG.ACCESS_CODE);
+  const [scannedCode, setScannedCode] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    if (codeParam) {
+      setScannedCode(codeParam);
+      setShowAccessModal(true);
+    }
+  }, []);
 
   // --- Handlers for Public Flow ---
   
@@ -89,7 +100,8 @@ const App: React.FC = () => {
 
   // 4. Default View: Landing Page
   return (
-    <div className="min-h-screen bg-exact-dark text-white font-sans selection:bg-exact-red selection:text-white">
+    <div className="min-h-screen bg-exact-dark text-white font-sans selection:bg-exact-red selection:text-white relative">
+      <CookieConsent />
       <Navbar onAdminLogin={handleAdminLoginClick} />
       
       <main>
@@ -140,6 +152,7 @@ const App: React.FC = () => {
       {showAccessModal && (
         <AccessModal 
           requiredCode={accessCode}
+          initialCode={scannedCode}
           onClose={() => setShowAccessModal(false)} 
           onSuccess={handleAccessGranted} 
         />

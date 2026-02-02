@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { TEXTS } from '../constants/texts';
 
 const Footer: React.FC = () => {
-  const [modalType, setModalType] = useState<'privacy' | 'terms' | 'contact' | null>(null);
+  const [modalType, setModalType] = useState<'privacy' | 'terms' | 'cookies' | 'contact' | null>(null);
 
   const renderModalContent = () => {
     switch (modalType) {
@@ -22,6 +22,15 @@ const Footer: React.FC = () => {
             <h3 className="text-xl font-bold mb-4 text-white">{TEXTS.MODALS.TERMS.TITLE}</h3>
             <p className="text-gray-300">
               {TEXTS.MODALS.TERMS.CONTENT}
+            </p>
+          </>
+        );
+      case 'cookies':
+        return (
+          <>
+            <h3 className="text-xl font-bold mb-4 text-white">{TEXTS.MODALS.COOKIES.TITLE}</h3>
+            <p className="text-gray-300">
+              {TEXTS.MODALS.COOKIES.CONTENT}
             </p>
           </>
         );
@@ -61,6 +70,7 @@ const Footer: React.FC = () => {
             <div className="flex space-x-6 text-sm text-gray-400">
               <button onClick={() => setModalType('privacy')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.PRIVACY}</button>
               <button onClick={() => setModalType('terms')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.TERMS}</button>
+              <button onClick={() => setModalType('cookies')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.COOKIES}</button>
               <button onClick={() => setModalType('contact')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.CONTACT}</button>
             </div>
           </div>

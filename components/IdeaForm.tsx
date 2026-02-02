@@ -3,6 +3,7 @@ import { Send, ArrowLeft, Clock, AlertCircle } from 'lucide-react';
 import { collection, addDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
+import ConfirmationModal from './ConfirmationModal';
 
 interface IdeaFormProps {
   onCancel: () => void;
@@ -82,12 +83,25 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
     } catch (error) {
       console.error("Error adding document: ", error);
       setIsSubmitting(false);
-      alert("Er is iets misgegaan bij het versturen. Probeer het opnieuw.");
+      setAlertState({
+        open: true,
+        title: 'Fout',
+        message: 'Er is iets misgegaan bij het versturen. Probeer het opnieuw.'
+      });
     }
   };
 
   return (
     <div className="h-screen bg-exact-dark flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden">
+      <ConfirmationModal
+        isOpen={alertState.open}
+        onClose={() => setAlertState({ ...alertState, open: false })}
+        onConfirm={() => setAlertState({ ...alertState, open: false })}
+        title={alertState.title}
+        message={alertState.message}
+        confirmText="OK"
+        variant="warning"
+      />
       {/* Header */}
       <div className="bg-exact-panel p-3 border-b border-white/10 flex items-center flex-shrink-0">
         <button onClick={onCancel} className="p-2 -ml-2 text-gray-400 hover:text-white">

@@ -4,7 +4,7 @@ export const TEXTS = {
     PREFIX: "=",
     MAIN: "Exact",
     SUFFIX: "Idea Processor",
-    VERSION: "v 1.260202.1",
+    VERSION: "v 1.260202.2",
   },
   NAV: {
     ADMIN_LOGIN: "Admin Login",
@@ -94,7 +94,15 @@ export const TEXTS = {
     },
     TERMS: {
       TITLE: "Algemene Voorwaarden",
-      CONTENT: "Door gebruik te maken van de applicatie gaat u akkoord met onze voorwaarden. Intellectueel eigendom van ideeën blijft bij de auteur."
+      CONTENT: "Door gebruik te maken van de applicatie gaat u akkoord met onze voorwaarden. Alle ingediende ideeën, concepten en data worden volledig en exclusief eigendom van Exact. Exact behoudt zich het onherroepelijke recht voor om deze informatie vrijelijk te gebruiken, te ontwikkelen, te wijzigen, te publiceren of te commercialiseren, op welke wijze dan ook, zonder enige verplichting tot compensatie, erkenning of notificatie aan de indiener. De indiener doet hierbij afstand van alle (intellectuele) eigendomsrechten met betrekking tot de ingediende content."
+    },
+    COOKIES: {
+      TITLE: "Cookiebeleid",
+      CONTENT: "Exact Idea Processor gebruikt functionele cookies om uw sessie en voorkeuren te beheren. Er worden geen tracking-cookies van derden gebruikt voor advertentiedoeleinden. De verzamelde gegevens (zoals ingevoerde toegangscodes en sessie-ID's) worden lokaal opgeslagen en versleuteld verzonden naar onze beveiligde servers.",
+      BANNER: {
+        TEXT: "Wij gebruiken cookies om uw ervaring te verbeteren en de applicatie goed te laten werken.",
+        BTN_ACCEPT: "Accepteren en Doorgaan"
+      }
     },
     CONTACT: {
       TITLE: "Contact",
@@ -180,6 +188,7 @@ export const TEXTS = {
     LINKS: {
       PRIVACY: "Privacy",
       TERMS: "Voorwaarden",
+      COOKIES: "Cookies",
       CONTACT: "Contact"
     }
   },

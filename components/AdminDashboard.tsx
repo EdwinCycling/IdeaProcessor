@@ -7,6 +7,7 @@ import { TEXTS } from '../constants/texts';
 import { Idea, AIAnalysisResult, IdeaDetails } from '../types';
 import { analyzeIdeas, generateIdeaDetails } from '../services/ai';
 import ChatAssistant from './ChatAssistant';
+import ConfirmationModal from './ConfirmationModal';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -57,6 +58,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const [sessionDuration, setSessionDuration] = useState(0); // In seconds
   const [isClosing, setIsClosing] = useState(false);
   const [closingCountdown, setClosingCountdown] = useState(10);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Scroll ref for log
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -259,20 +261,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     setClosingCountdown(10);
   };
 
-  const handleCancelSession = async () => {
-      if (confirm("Weet je zeker dat je de sessie wilt annuleren? Alle data van deze sessie gaat verloren.")) {
-           if (db) {
-              try {
-                  await setDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
-                  isActive: false,
-                  updatedAt: Date.now()
-                  }, { merge: true });
-              } catch (err) {
-                  console.error("Error cancelling session:", err);
-              }
-            }
-            handleReset();
-      }
+  const handleCancelSession = () => {
+      setShowCancelModal(true);
+  };
+
+  const confirmCancelSession = async () => {
+       if (db) {
+          try {
+              await setDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
+              isActive: false,
+              updatedAt: Date.now()
+              }, { merge: true });
+          } catch (err) {
+              console.error("Error cancelling session:", err);
+          }
+        }
+        handleReset();
   };
 
   const handleSelectIdea = async () => {
@@ -628,7 +632,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       <nav className="bg-exact-panel border-b border-white/10 px-6 h-16 flex-shrink-0 flex items-center justify-between">
         <div className="flex items-center space-x-4">
              <span className="font-sans font-black text-xl tracking-tighter">
-                <span className="text-exact-red text-2xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-400 font-light text-sm uppercase">{TEXTS.ADMIN_DASHBOARD.TITLE}</span>
+                <span className="text-exact-red text-2xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-400 font-light">{TEXTS.APP_NAME.SUFFIX}</span>
                 <span className="text-gray-600 text-xs ml-2 font-mono">{TEXTS.APP_NAME.VERSION}</span>
               </span>
              <span className={`px-2 py-0.5 rounded-full text-xs font-mono border ${phase === 'LIVE' ? 'border-neon-green text-neon-green' : 'border-gray-600 text-gray-500'}`}>
@@ -805,13 +809,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <div className="text-center">
                     <div className="bg-white p-4 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-6 mx-auto inline-block">
                         <img 
-                            src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=ExactIdeaProcessor" 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent('https://ideaprocessor.netlify.app/')}`}
                             alt="Scan QR" 
                             className="w-64 h-64 md:w-80 md:h-80 object-contain"
                         />
                     </div>
                     <h2 className="text-2xl font-bold mb-2">{TEXTS.ADMIN_DASHBOARD.LIVE.SCAN_TITLE}</h2>
-                    <p className="text-gray-400 font-mono text-xl">{TEXTS.ADMIN_DASHBOARD.LIVE.CODE_LABEL} <span className="text-exact-red font-bold">{currentAccessCode.toUpperCase()}</span></p>
+                    <p className="text-gray-400 font-mono text-xl mb-6">{TEXTS.ADMIN_DASHBOARD.LIVE.CODE_LABEL} <span className="text-exact-red font-bold">{currentAccessCode.toUpperCase()}</span></p>
+                    
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-md mx-auto">
+                        <p className="text-gray-400 text-sm mb-1">OF ga in je web browser naar:</p>
+                        <p className="text-neon-cyan font-mono text-lg font-bold tracking-wide select-all">https://ideaprocessor.netlify.app/</p>
+                    </div>
                 </div>
              </div>
 
@@ -1419,6 +1428,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         )}
 
       </main>
+
+      {/* Modal Overlay */}
+      <ConfirmationModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={confirmCancelSession}
+        title="Sessie Annuleren"
+        message="Weet je zeker dat je de sessie wilt annuleren? Alle verzamelde ideeën en data van deze sessie gaan definitief verloren."
+        confirmText="Ja, Annuleren"
+        cancelText="Nee, Terug"
+        variant="danger"
+      />
 
       {/* Settings Modal */}
       {showSettings && (

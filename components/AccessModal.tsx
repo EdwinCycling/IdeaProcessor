@@ -6,10 +6,11 @@ interface AccessModalProps {
   onClose: () => void;
   onSuccess: () => void;
   requiredCode: string;
+  initialCode?: string;
 }
 
-const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode }) => {
-  const [code, setCode] = useState('');
+const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode, initialCode = '' }) => {
+  const [code, setCode] = useState(initialCode);
   const [error, setError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 

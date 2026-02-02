@@ -3,6 +3,7 @@ import { MessageSquare, X, Send, User, Bot, Download, Trash2, Copy, Sparkles } f
 import { jsPDF } from 'jspdf';
 import { Idea, IdeaDetails } from '../types';
 import { chatWithIdeaProfessor } from '../services/ai';
+import ConfirmationModal from './ConfirmationModal';
 
 interface ChatAssistantProps {
   idea: Idea;
@@ -50,6 +51,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isResizing, setIsResizing] = useState(false);
+  const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
+  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
 
   // Initialize chat with default context
   useEffect(() => {
@@ -285,6 +288,17 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
           className="h-full bg-[#121212] border-l border-white/10 shadow-2xl z-40 flex flex-col flex-shrink-0 animate-in slide-in-from-right duration-300 relative"
           style={{ width: `${width}px` }}
         >
+          <ConfirmationModal
+            isOpen={showClearHistoryModal}
+            onClose={() => setShowClearHistoryModal(false)}
+            onConfirm={confirmClearHistory}
+            title="Geschiedenis Wissen"
+            message="Weet je zeker dat je de volledige chatgeschiedenis van deze sessie wilt wissen?"
+            confirmText="Wissen"
+            cancelText="Annuleren"
+            variant="danger"
+          />
+
           {/* Resize Handle */}
           <div 
             className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-neon-green/50 transition-colors z-50"
