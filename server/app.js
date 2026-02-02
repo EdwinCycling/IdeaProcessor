@@ -7,6 +7,7 @@ import Cerebras from '@cerebras/cerebras_cloud_sdk';
 dotenv.config();
 
 const app = express();
+const apiRouter = express.Router();
 
 // Middleware
 app.use(cors()); // Allow all origins for now (or configure specific)
@@ -32,7 +33,7 @@ const sanitizeInput = (text) => {
 };
 
 // Routes
-app.post('/analyze', async (req, res) => {
+apiRouter.post('/analyze', async (req, res) => {
     if (!apiKey) {
         return res.status(500).json({ error: "Server Error: API Key not configured" });
     }
@@ -127,7 +128,7 @@ app.post('/analyze', async (req, res) => {
     }
 });
 
-app.post('/generate-details', async (req, res) => {
+apiRouter.post('/generate-details', async (req, res) => {
     // if (!client) {
     //    return res.status(500).json({ error: "Server Error: API Key not configured" });
     // }
@@ -226,7 +227,7 @@ app.post('/generate-details', async (req, res) => {
     }
 });
 
-app.post('/chat', async (req, res) => {
+apiRouter.post('/chat', async (req, res) => {
     // if (!client) {
     //    return res.status(500).json({ error: "Server Error: API Key not configured" });
     // }
@@ -298,7 +299,5 @@ apiRouter.get('/health', (req, res) => {
 
 // Mount API Router
 app.use('/api', apiRouter);
-// Also mount on root for backwards compatibility or direct calls if needed
-app.use('/', apiRouter);
 
 export default app;
