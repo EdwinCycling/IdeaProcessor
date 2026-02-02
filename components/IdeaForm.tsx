@@ -17,12 +17,15 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [alertState, setAlertState] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
+  const [cooldown, setCooldown] = useState(0);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Security limits
   const MAX_NAME_LENGTH = 50;
   const MIN_IDEA_LENGTH = 5;
   const MAX_IDEA_LENGTH = 500;
+  const SUBMISSION_COOLDOWN = 60000; // 60 seconds
 
   useEffect(() => {
     if (nameInputRef.current) {
