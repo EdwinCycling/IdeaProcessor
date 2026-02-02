@@ -78,7 +78,10 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
                   </p>
                   
                   <button
-                    onClick={() => onSelectIdea(idea)}
+                    onClick={() => {
+                      onSelectIdea(idea);
+                      onClose();
+                    }}
                     className="w-full py-3 bg-exact-red hover:bg-red-700 text-white text-xs font-bold rounded flex items-center justify-center transition-all uppercase tracking-widest"
                   >
                     <Check className="w-4 h-4 mr-2" />

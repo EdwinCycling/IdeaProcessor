@@ -93,6 +93,36 @@ export const chatWithIdeaProfessor = async (
 };
 
 
+export const generateBlog = async (context: string, idea: Idea, style: string): Promise<{ title: string; content: string }> => {
+  try {
+    const response = await fetch('/api/generate-blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context, idea, style })
+    });
+    if (!response.ok) throw new Error("Blog generation failed");
+    return await response.json();
+  } catch (error) {
+    console.error("Blog generation failed:", error);
+    return { title: "Blog Generatie Mislukt", content: "Probeer het later opnieuw." };
+  }
+};
+
+export const generatePressRelease = async (context: string, idea: Idea, style: string): Promise<{ title: string; content: string; date: string; location: string }> => {
+  try {
+    const response = await fetch('/api/generate-press-release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context, idea, style })
+    });
+    if (!response.ok) throw new Error("Press release generation failed");
+    return await response.json();
+  } catch (error) {
+    console.error("Press release generation failed:", error);
+    return { title: "Persbericht Generatie Mislukt", content: "Probeer het later opnieuw.", date: "Zomer 2026", location: "Delft" };
+  }
+};
+
 export const generateIdeaDetails = async (context: string, idea: Idea): Promise<IdeaDetails> => {
   // Use Backend API (Proxied to localhost:9998 or Netlify Function)
   try {
@@ -123,7 +153,17 @@ export const generateIdeaDetails = async (context: string, idea: Idea): Promise<
           pbis: [],
           businessCase: { problemStatement: "N/A", proposedSolution: "N/A", strategicFit: "N/A", financialImpact: "N/A", risks: [] },
           devilsAdvocate: { critique: "N/A", blindSpots: [], preMortem: "N/A" },
-          marketing: { slogan: "N/A", linkedInPost: "N/A", viralTweet: "N/A", targetAudience: "N/A" }
+          marketing: { slogan: "N/A", linkedInPost: "N/A", viralTweet: "N/A", targetAudience: "N/A" },
+          pressRelease: {
+             title: "Persbericht Generatie Mislukt",
+             content: "Er is een fout opgetreden bij het genereren van het persbericht. Controleer de server logs.",
+             date: "Zomer 2026",
+             location: "Delft"
+          },
+          blogPost: {
+             title: "Blog Generatie Mislukt",
+             content: "Er is een fout opgetreden bij het genereren van de blogpost."
+          }
       };
   }
 };

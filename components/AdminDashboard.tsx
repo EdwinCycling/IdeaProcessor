@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3 } from 'lucide-react';
+import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3, Sparkles } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
 import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage } from '../types';
-import { analyzeIdeas, generateIdeaDetails } from '../services/ai';
+import { analyzeIdeas, generateIdeaDetails, generateBlog, generatePressRelease } from '../services/ai';
 import ChatAssistant from './ChatAssistant';
 import ConfirmationModal from './ConfirmationModal';
 import IdeasOverviewModal from './IdeasOverviewModal';
+import RevealIdeaModal from './RevealIdeaModal';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -17,7 +18,7 @@ interface AdminDashboardProps {
 }
 
 type DashboardPhase = 'MENU' | 'SETUP' | 'LIVE' | 'ANALYSIS' | 'DETAIL';
-type DetailTab = 'GENERAL' | 'QUESTIONS' | 'AI_ANSWERS' | 'BUSINESS_CASE' | 'DEVILS_ADVOCATE' | 'MARKETING';
+type DetailTab = 'GENERAL' | 'QUESTIONS' | 'AI_ANSWERS' | 'BUSINESS_CASE' | 'DEVILS_ADVOCATE' | 'MARKETING' | 'PRESS_RELEASE' | 'BLOG';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccessCode, onUpdateAccessCode }) => {
   const [phase, setPhase] = useState<DashboardPhase>('MENU');
@@ -50,6 +51,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const [startProgress, setStartProgress] = useState(0);
   const [isStartingFollowUp, setIsStartingFollowUp] = useState(false);
   const [followUpProgress, setFollowUpProgress] = useState(0);
+
+  // New Generation States
+  const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
+  const [isGeneratingPressRelease, setIsGeneratingPressRelease] = useState(false);
+  const [blogStyle, setBlogStyle] = useState('zakelijk');
+  const [pressReleaseStyle, setPressReleaseStyle] = useState('zakelijk');
+
+  // Reveal State
+  const [showRevealModal, setShowRevealModal] = useState(false);
+  const [hasRevealed, setHasRevealed] = useState(false);
+  const [revealedIdeaId, setRevealedIdeaId] = useState<string | null>(null);
 
   // Simulation of progress for AI calls
   useEffect(() => {
@@ -119,7 +131,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
       setShowOverview(false);
       setSelectedManualIdeaId(idea.id);
-      setSelectedIdeaId(idea.id); // Auto-select the newly added idea
+      
+      // NEW: Immediately set this as the revealed idea and select it
+      setRevealedIdeaId(idea.id);
+      setHasRevealed(true);
+      setSelectedIdeaId(idea.id); 
+
     } catch (err) {
       console.error("Error selecting idea:", err);
     }
@@ -325,8 +342,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     
     // Clear local state
     setIdeas([]);
+    setAnalysis(null);
     setSessionDuration(0); // Reset timer
     setAnimatedScore(0);
+    setHasRevealed(false);
+    setRevealedIdeaId(null);
     
     if (db) {
       try {
@@ -406,6 +426,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     setIsGeneratingDetails(false);
   };
 
+  const handleGenerateBlog = async () => {
+    if (!selectedIdeaId || !analysis || !ideaDetails) return;
+    setIsGeneratingBlog(true);
+    const selectedIdea = analysis.topIdeas.find(i => i.id === selectedIdeaId);
+    if (selectedIdea) {
+      const blog = await generateBlog(context, selectedIdea, blogStyle);
+      setIdeaDetails({
+        ...ideaDetails,
+        blogPost: blog
+      });
+    }
+    setIsGeneratingBlog(false);
+  };
+
+  const handleGeneratePressRelease = async () => {
+    if (!selectedIdeaId || !analysis || !ideaDetails) return;
+    setIsGeneratingPressRelease(true);
+    const selectedIdea = analysis.topIdeas.find(i => i.id === selectedIdeaId);
+    if (selectedIdea) {
+      const pr = await generatePressRelease(context, selectedIdea, pressReleaseStyle);
+      setIdeaDetails({
+        ...ideaDetails,
+        pressRelease: pr
+      });
+    }
+    setIsGeneratingPressRelease(false);
+  };
+
   const handleReset = () => {
       setPhase('MENU');
       setContext('');
@@ -417,6 +465,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       setSessionDuration(0);
       setIsClosing(false);
       setAnimatedScore(0);
+      setHasRevealed(false);
+      setRevealedIdeaId(null);
+      setShowRevealModal(false);
 
       // Also reset manual selection in Firestore
       if (db) {
@@ -934,9 +985,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             setShowFollowUpModal(false);
             setPhase('LIVE');
             setIdeas([]);
+            setAnalysis(null);
+            setAnimatedScore(0);
             setSelectedIdeaId(null);
             setIdeaDetails(null);
             setContext(followUpQuestion);
+            setHasRevealed(false);
+            setRevealedIdeaId(null);
         }, 500);
         
     } catch (err) {
@@ -946,6 +1001,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   };
 
   const selectedIdea = analysis?.topIdeas.find(i => i.id === selectedIdeaId);
+
+  const handleStartReveal = () => {
+    if (analysis && analysis.topIdeas.length > 0) {
+        setRevealedIdeaId(analysis.topIdeas[0].id);
+        setShowRevealModal(true);
+    }
+  };
+
+  const handleConfirmReveal = () => {
+    setShowRevealModal(false);
+    setHasRevealed(true);
+    if (revealedIdeaId) {
+        setSelectedIdeaId(revealedIdeaId);
+    }
+  };
 
   return (
     <div className="h-screen bg-exact-dark text-white font-sans flex flex-col overflow-hidden relative">
@@ -1340,40 +1410,56 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                   </p>
                 </div>
 
-                {/* Top Ideas Grid */}
+                {/* Top Ideas Grid REPLACEMENT */}
                 <div>
                    <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-                     {analysis?.topIdeas.length && analysis.topIdeas.length > 3 
-                       ? "Top Ideeën & Geselecteerd Idee" 
-                       : TEXTS.ADMIN_DASHBOARD.ANALYSIS.TOP_3_TITLE}
+                     {hasRevealed ? "Geselecteerd Top Idee" : "Top Idee Onthulling"}
                    </h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {analysis?.topIdeas.map((idea) => (
-                        <div 
-                          key={idea.id}
-                          onClick={() => setSelectedIdeaId(idea.id)}
-                          className={`p-6 rounded-lg border cursor-pointer transition-all duration-300 relative ${
-                            selectedIdeaId === idea.id 
-                              ? 'bg-exact-red/10 border-exact-red shadow-[0_0_20px_rgba(225,0,0,0.2)] transform -translate-y-2' 
-                              : 'bg-exact-panel border-white/10 hover:border-white/30 hover:bg-white/5'
-                          }`}
-                        >
-                          {selectedIdeaId === idea.id && (
-                            <div className="absolute top-4 right-4 text-exact-red">
-                              <Check className="w-6 h-6" />
+                   
+                   <div className="flex flex-col md:flex-row gap-6">
+                      {/* 1. If REVEALED: Show the Idea Card First */}
+                      {hasRevealed && revealedIdeaId && (() => {
+                          const idea = analysis?.topIdeas.find(i => i.id === revealedIdeaId);
+                          if (!idea) return null;
+                          return (
+                            <div 
+                              key={idea.id}
+                              className="flex-1 p-8 rounded-lg border relative bg-exact-red/10 border-exact-red shadow-[0_0_20px_rgba(225,0,0,0.2)] animate-in fade-in slide-in-from-bottom-4 duration-500"
+                            >
+                              <div className="absolute top-4 right-4 text-exact-red">
+                                <Check className="w-8 h-8" />
+                              </div>
+                              <div className="mb-6">
+                                <span className="text-sm font-mono text-gray-400">
+                                    {new Date(idea.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <h4 className="text-2xl font-bold text-white mt-2">{idea.name}</h4>
+                              </div>
+                              <p className="text-white text-xl leading-relaxed italic">
+                                "{idea.content}"
+                              </p>
                             </div>
-                          )}
-                          <div className="mb-4">
-                            <span className="text-xs font-mono text-gray-500">
-                                {new Date(idea.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <h4 className="font-bold text-white mt-1">{idea.name}</h4>
+                          );
+                      })()}
+
+                      {/* 2. REVEAL ACTION CARD */}
+                      <button 
+                          onClick={handleStartReveal}
+                          className={`
+                              group relative overflow-hidden rounded-lg border border-dashed border-white/30 flex flex-col items-center justify-center text-center transition-all
+                              ${hasRevealed ? 'w-full md:w-1/3 bg-white/5 hover:bg-white/10 min-h-[200px]' : 'w-full bg-gradient-to-br from-white/5 to-white/10 hover:from-white/10 hover:to-white/20 min-h-[400px]'}
+                          `}
+                      >
+                          <div className={`rounded-full mb-6 group-hover:scale-110 transition-transform ${hasRevealed ? 'p-3 bg-white/5' : 'p-6 bg-neon-cyan/20'}`}>
+                              <Sparkles className={`${hasRevealed ? 'w-6 h-6 text-gray-400' : 'w-12 h-12 text-neon-cyan'}`} />
                           </div>
-                          <p className="text-gray-300 text-sm leading-relaxed">
-                            "{idea.content}"
+                          <h3 className={`${hasRevealed ? 'text-lg' : 'text-3xl'} font-bold text-white mb-2`}>
+                              {hasRevealed ? "Kies een ander idee" : "Onthul het Top Idee"}
+                          </h3>
+                          <p className="text-gray-400 max-w-md px-4">
+                              {hasRevealed ? "Start de onthulling opnieuw om een andere winnaar te kiezen." : "Start de spectaculaire onthulling van het beste idee uit deze sessie."}
                           </p>
-                        </div>
-                      ))}
+                      </button>
                    </div>
                 </div>
 
@@ -1469,6 +1555,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'MARKETING' ? 'border-pink-500 text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
                     >
                        <span className="flex items-center"><Megaphone className="w-4 h-4 mr-2" /> {TEXTS.ADMIN_DASHBOARD.DETAIL.TABS.MARKETING}</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('PRESS_RELEASE')}
+                        className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'PRESS_RELEASE' ? 'border-blue-500 text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
+                    >
+                       <span className="flex items-center"><Share2 className="w-4 h-4 mr-2" /> Persbericht</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('BLOG')}
+                        className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'BLOG' ? 'border-yellow-500 text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
+                    >
+                       <span className="flex items-center"><FileText className="w-4 h-4 mr-2" /> Blog</span>
                     </button>
                 </div>
 
@@ -1735,6 +1833,173 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                              </div>
                         </div>
                     )}
+
+                    {activeTab === 'PRESS_RELEASE' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            {!ideaDetails.pressRelease ? (
+                                <div className="bg-white/5 border border-white/10 p-10 rounded-lg text-center max-w-2xl mx-auto">
+                                    <Share2 className="w-16 h-16 text-blue-500 mx-auto mb-6 opacity-50" />
+                                    <h3 className="text-2xl font-bold text-white mb-4">Genereer Persbericht</h3>
+                                    <p className="text-gray-400 mb-8">
+                                        Kies een stijl voor het persbericht en laat de AI een professioneel bericht schrijven.
+                                    </p>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                                        <select 
+                                            value={pressReleaseStyle}
+                                            onChange={(e) => setPressReleaseStyle(e.target.value)}
+                                            className="bg-black/50 border border-white/20 rounded-md px-4 py-3 text-white focus:outline-none focus:border-blue-500 w-full sm:w-64"
+                                        >
+                                            <option value="zakelijk">Zakelijk</option>
+                                            <option value="spannend">Spannend</option>
+                                            <option value="humor">Humor</option>
+                                        </select>
+                                        
+                                        <button 
+                                            onClick={handleGeneratePressRelease}
+                                            disabled={isGeneratingPressRelease}
+                                            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-md transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                                        >
+                                            {isGeneratingPressRelease ? (
+                                                <>
+                                                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                                                    Bezig...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="w-4 h-4 mr-2" />
+                                                    Genereren
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                             <div className="bg-white text-black p-10 rounded-lg shadow-2xl max-w-4xl mx-auto font-serif relative">
+                                <button 
+                                    onClick={() => setIdeaDetails({...ideaDetails, pressRelease: undefined})}
+                                    className="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors"
+                                    title="Opnieuw genereren"
+                                >
+                                    <RotateCcw className="w-5 h-5" />
+                                </button>
+                                <div className="border-b-2 border-black pb-6 mb-6 flex justify-between items-end">
+                                    <div>
+                                        <h4 className="text-xs font-sans font-bold uppercase tracking-widest text-gray-500 mb-1">VOOR ONMIDDELLIJKE PUBLICATIE</h4>
+                                        <div className="text-sm font-sans text-gray-600">
+                                            {ideaDetails.pressRelease.location} — {ideaDetails.pressRelease.date}
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                         <div className="text-2xl font-black font-sans text-exact-red">EXACT</div>
+                                         <div className="text-xs font-sans text-gray-500">Persrelaties</div>
+                                    </div>
+                                </div>
+                                
+                                <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight">
+                                    {ideaDetails.pressRelease.title}
+                                </h2>
+                                
+                                <div className="whitespace-pre-line text-lg leading-relaxed text-gray-800">
+                                    {ideaDetails.pressRelease.content}
+                                </div>
+
+                                <div className="mt-10 pt-6 border-t border-gray-300 text-center text-sm text-gray-500 font-sans">
+                                    ###
+                                    <br/><br/>
+                                    <strong>Over Exact</strong><br/>
+                                    Exact ontwikkelt cloud software voor kleine en middelgrote bedrijven en hun accountants. De producten automatiseren bedrijfsprocessen zoals financiën en HR.
+                                </div>
+                             </div>
+                            )}
+                             {ideaDetails.pressRelease && (
+                                <div className="mt-4 flex justify-end max-w-4xl mx-auto">
+                                    <button onClick={() => handleCopyToChat(ideaDetails.pressRelease?.content || '')} className="text-gray-400 hover:text-white transition-colors flex items-center" title="Kopieer"><MessageSquare className="w-4 h-4 mr-2" /> Kopieer naar Chat</button>
+                                </div>
+                             )}
+                        </div>
+                    )}
+
+                    {activeTab === 'BLOG' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            {!ideaDetails.blogPost ? (
+                                <div className="bg-white/5 border border-white/10 p-10 rounded-lg text-center max-w-2xl mx-auto">
+                                    <FileIcon className="w-16 h-16 text-yellow-500 mx-auto mb-6 opacity-50" />
+                                    <h3 className="text-2xl font-bold text-white mb-4">Genereer Blog Post</h3>
+                                    <p className="text-gray-400 mb-8">
+                                        Kies een stijl voor de blog post en laat de AI een inspirerend artikel schrijven.
+                                    </p>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                                        <select 
+                                            value={blogStyle}
+                                            onChange={(e) => setBlogStyle(e.target.value)}
+                                            className="bg-black/50 border border-white/20 rounded-md px-4 py-3 text-white focus:outline-none focus:border-blue-500 w-full sm:w-64"
+                                        >
+                                            <option value="zakelijk">Zakelijk</option>
+                                            <option value="spannend">Spannend</option>
+                                            <option value="humor">Humor</option>
+                                        </select>
+                                        
+                                        <button 
+                                            onClick={handleGenerateBlog}
+                                            disabled={isGeneratingBlog}
+                                            className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-md transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                                        >
+                                            {isGeneratingBlog ? (
+                                                <>
+                                                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                                                    Bezig...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="w-4 h-4 mr-2" />
+                                                    Genereren
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                             <div className="bg-white/5 border border-white/10 p-10 rounded-lg max-w-4xl mx-auto relative">
+                                <button 
+                                    onClick={() => setIdeaDetails({...ideaDetails, blogPost: undefined})}
+                                    className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                                    title="Opnieuw genereren"
+                                >
+                                    <RotateCcw className="w-5 h-5" />
+                                </button>
+                                <div className="flex items-center mb-8">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl mr-4">
+                                        E
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-white">Exact Tech Blog</h3>
+                                        <p className="text-xs text-gray-400">Innovatie & Technologie</p>
+                                    </div>
+                                </div>
+
+                                <h1 className="text-3xl md:text-4xl font-bold text-white mb-8 leading-tight">
+                                    {ideaDetails.blogPost.title}
+                                </h1>
+
+                                <div className="prose prose-invert prose-lg max-w-none">
+                                    <div className="whitespace-pre-line text-gray-300 leading-relaxed">
+                                        {ideaDetails.blogPost.content}
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-10 pt-6 border-t border-white/10 flex items-center justify-between">
+                                    <div className="flex space-x-4">
+                                        <button className="text-gray-400 hover:text-white transition-colors"><Share2 className="w-5 h-5" /></button>
+                                        <button className="text-gray-400 hover:text-white transition-colors"><MessageSquare className="w-5 h-5" /></button>
+                                    </div>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.blogPost?.content || '')} className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" title="Kopieer"><MessageSquare className="w-4 h-4 mr-2" /> Bespreek in Chat</button>
+                                </div>
+                             </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer Actions */}
@@ -1839,6 +2104,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         )}
 
       </main>
+
+      {/* Reveal Modal */}
+      <RevealIdeaModal
+        isOpen={showRevealModal}
+        onClose={() => setShowRevealModal(false)}
+        idea={analysis?.topIdeas.find(i => i.id === revealedIdeaId) || null}
+        context={context}
+        onConfirm={handleConfirmReveal}
+      />
 
       {/* Modal Overlay */}
       <ConfirmationModal

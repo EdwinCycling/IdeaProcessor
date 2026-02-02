@@ -225,6 +225,7 @@ apiRouter.post('/generate-details', async (req, res) => {
                 ],
                 model: CEREBRAS_MODEL,
                 temperature: 0.2,
+                max_tokens: 8192, // Ensure enough tokens for long blog/press release
             });
 
             let responseText = completion.choices[0].message.content;
@@ -245,6 +246,131 @@ apiRouter.post('/generate-details', async (req, res) => {
     } catch (error) {
         console.error("Detail Generation Error:", error);
         res.status(500).json({ error: "Detail generation failed", details: error.message });
+    }
+});
+
+apiRouter.post('/generate-blog', async (req, res) => {
+    const { context, idea, style } = req.body;
+    if (!idea) return res.status(400).json({ error: "No idea provided" });
+
+    try {
+        const cleanContext = sanitizeInput(context || "");
+        const cleanIdeaName = sanitizeInput(idea.name);
+        const cleanIdeaContent = sanitizeInput(idea.content);
+        
+        let styleInstruction = "";
+        switch(style) {
+            case 'spannend':
+                styleInstruction = "Schrijf in een spannende, meeslepende stijl die de lezer enthousiast maakt over de toekomst.";
+                break;
+            case 'humor':
+                styleInstruction = "Gebruik veel humor en een informele toon. Maak het leuk en vermakelijk om te lezen.";
+                break;
+            case 'zakelijk':
+            default:
+                styleInstruction = "Schrijf in een professionele, zakelijke stijl geschikt voor een bedrijfsblog.";
+                break;
+        }
+
+        const prompt = `
+          <system_instruction>
+          Schrijf een Blog Post (ongeveer 500 woorden) in het Nederlands over het geselecteerde idee.
+          Stijl: ${styleInstruction}
+          </system_instruction>
+          <context>${cleanContext}</context>
+          <selected_idea>
+            <author>${cleanIdeaName}</author>
+            <content>${cleanIdeaContent}</content>
+          </selected_idea>
+          
+          Output JSON format:
+          {
+            "title": "string",
+            "content": "string"
+          }
+        `;
+
+        const completion = await client.chat.completions.create({
+            messages: [
+                { role: "system", content: "You are a JSON generator. Always output valid JSON." },
+                { role: "user", content: prompt }
+            ],
+            model: CEREBRAS_MODEL,
+            temperature: 0.7,
+        });
+
+        let responseText = completion.choices[0].message.content;
+        if (responseText.includes("```")) {
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '');
+        }
+        res.json(JSON.parse(responseText.trim()));
+    } catch (error) {
+        console.error("Blog Generation Error:", error);
+        res.status(500).json({ error: "Blog generation failed" });
+    }
+});
+
+apiRouter.post('/generate-press-release', async (req, res) => {
+    const { context, idea, style } = req.body;
+    if (!idea) return res.status(400).json({ error: "No idea provided" });
+
+    try {
+        const cleanContext = sanitizeInput(context || "");
+        const cleanIdeaName = sanitizeInput(idea.name);
+        const cleanIdeaContent = sanitizeInput(idea.content);
+        
+        let styleInstruction = "";
+        switch(style) {
+            case 'spannend':
+                styleInstruction = "Maak het een spannend en sensationeel persbericht. Gebruik krachtige woorden en een meeslepende toon.";
+                break;
+            case 'humor':
+                styleInstruction = "Schrijf met een flinke dosis humor. Maak het grappig en memorabel.";
+                break;
+            case 'zakelijk':
+            default:
+                styleInstruction = "Schrijf een formeel, zakelijk persbericht geschikt voor serieuze media.";
+                break;
+        }
+
+        const prompt = `
+          <system_instruction>
+          Schrijf een Persbericht in het Nederlands over het geselecteerde idee.
+          Locatie: Delft, Datum: Zomer 2026.
+          Stijl: ${styleInstruction}
+          </system_instruction>
+          <context>${cleanContext}</context>
+          <selected_idea>
+            <author>${cleanIdeaName}</author>
+            <content>${cleanIdeaContent}</content>
+          </selected_idea>
+          
+          Output JSON format:
+          {
+            "title": "string",
+            "content": "string",
+            "date": "Zomer 2026",
+            "location": "Delft"
+          }
+        `;
+
+        const completion = await client.chat.completions.create({
+            messages: [
+                { role: "system", content: "You are a JSON generator. Always output valid JSON." },
+                { role: "user", content: prompt }
+            ],
+            model: CEREBRAS_MODEL,
+            temperature: 0.7,
+        });
+
+        let responseText = completion.choices[0].message.content;
+        if (responseText.includes("```")) {
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '');
+        }
+        res.json(JSON.parse(responseText.trim()));
+    } catch (error) {
+        console.error("Press Release Generation Error:", error);
+        res.status(500).json({ error: "Press release generation failed" });
     }
 });
 

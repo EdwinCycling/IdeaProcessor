@@ -79,4 +79,14 @@ export interface IdeaDetails {
   businessCase: BusinessCase;
   devilsAdvocate: DevilsAdvocate;
   marketing: Marketing;
+  pressRelease?: {
+    title: string;
+    content: string; // The full press release text
+    date: string;
+    location: string;
+  };
+  blogPost?: {
+    title: string;
+    content: string; // The full 500-word blog post
+  };
 }
