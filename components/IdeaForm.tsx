@@ -115,7 +115,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
       />
       {/* Header */}
       <div className="bg-exact-panel p-3 border-b border-white/10 flex items-center flex-shrink-0">
-        <button onClick={onCancel} className="p-2 -ml-2 text-gray-400 hover:text-white">
+        <button onClick={onCancel} className="p-2 -ml-2 text-gray-400 hover:text-white" tabIndex={5}>
           <ArrowLeft size={20} />
         </button>
         <h1 className="ml-2 font-bold text-base text-white">{TEXTS.FORM.TITLE}</h1>
@@ -148,6 +148,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
               ref={nameInputRef}
               type="text"
               value={name}
+              tabIndex={1}
               maxLength={MAX_NAME_LENGTH}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-white/5 border border-neon-green/50 rounded-sm px-3 py-2 text-white focus:outline-none focus:border-neon-green focus:bg-white/10 transition-all text-sm shadow-[0_0_10px_rgba(57,255,20,0.1)]"
@@ -198,6 +199,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
             <button
                 type="button"
                 onClick={onCancel}
+                tabIndex={4}
                 className="w-full py-2 text-gray-500 font-medium text-xs hover:text-white transition-colors"
             >
                 {TEXTS.FORM.BTN_CANCEL}

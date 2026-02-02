@@ -28,9 +28,16 @@ export interface AIAnalysisResult {
 }
 
 export interface PBI {
+  id: string;
   title: string;
-  description: string;
+  userStory: string;
+  acceptanceCriteria: string[];
+  priority: string;
   storyPoints: number;
+  dependencies: string[];
+  businessValue: string;
+  dorCheck: boolean;
+  description?: string; // Keep for backward compatibility if needed
 }
 
 export interface BusinessCase {
@@ -52,6 +59,15 @@ export interface Marketing {
   linkedInPost: string;
   viralTweet: string;
   targetAudience: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  roleLabel?: string;
+  suggestedFollowUp?: string;
 }
 
 export interface IdeaDetails {

@@ -4,7 +4,7 @@ export const TEXTS = {
     PREFIX: "=",
     MAIN: "Exact",
     SUFFIX: "Idea Processor",
-    VERSION: "v 1.260202.3",
+    VERSION: "v 1.260202.11",
   },
   NAV: {
     ADMIN_LOGIN: "Admin Login",

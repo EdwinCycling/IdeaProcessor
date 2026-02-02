@@ -71,6 +71,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+          tabIndex={4}
         >
           <X size={24} />
         </button>
@@ -114,6 +115,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
             <button
               type="submit"
               disabled={!isValid}
+              tabIndex={2}
               className={`flex-1 px-4 py-3 font-bold rounded-sm transition-all flex items-center justify-center ${
                 isValid 
                   ? 'bg-exact-red text-white hover:bg-red-700 shadow-[0_0_15px_rgba(225,0,0,0.3)]' 

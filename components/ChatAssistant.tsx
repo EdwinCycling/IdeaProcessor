@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send, User, Bot, Download, Trash2, Copy, Sparkles } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { Idea, IdeaDetails } from '../types';
+import { Idea, IdeaDetails, ChatMessage } from '../types';
 import { chatWithIdeaProfessor } from '../services/ai';
 import ConfirmationModal from './ConfirmationModal';
 
@@ -15,18 +15,10 @@ interface ChatAssistantProps {
   onWidthChange: (width: number) => void;
   pastedText?: string;
   onClearPastedText?: () => void;
+  onMessagesChange?: (messages: ChatMessage[]) => void;
 }
 
 type Role = 'PRODUCT_MANAGER' | 'INVESTOR' | 'SALES';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-  roleLabel?: string; // To show which professor answered
-  suggestedFollowUp?: string;
-}
 
 const ROLES: { id: Role; label: string; description: string; color: string }[] = [
   { id: 'PRODUCT_MANAGER', label: 'Professor Product Manager', description: 'Focus op uitvoering & roadmap', color: 'text-neon-cyan' },
@@ -43,10 +35,11 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   width, 
   onWidthChange,
   pastedText,
-  onClearPastedText 
+  onClearPastedText,
+  onMessagesChange
 }) => {
   const [currentRole, setCurrentRole] = useState<Role>('PRODUCT_MANAGER');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,16 +50,17 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   // Initialize chat with default context
   useEffect(() => {
     if (messages.length === 0) {
-      const initialMessage: Message = {
+      const activeRole = ROLES.find(r => r.id === currentRole);
+      const initialMessage: ChatMessage = {
         id: 'init',
         role: 'assistant',
-        content: `Hallo! Ik ben jouw **Idea Professor**. \n\nIk heb het idee van **"${idea.name}"** geanalyseerd. \n\nSelecteer hierboven een rol (Product Manager, Investor, of Sales) en stel me een vraag, of laat me een vervolgvraag bedenken!`,
+        content: `Hallo! Ik ben jouw **Idea Professor**. \n\nIk heb het idee van **"${idea.name}"** geanalyseerd. \n\nIk sta momenteel ingesteld als **${activeRole?.label}**. \n\nStel me een vraag, of laat me een vervolgvraag bedenken!`,
         timestamp: Date.now(),
         roleLabel: 'System'
       };
       setMessages([initialMessage]);
     }
-  }, [idea.name]);
+  }, [idea.name, currentRole]);
 
   // Handle pasted text
   useEffect(() => {
@@ -79,7 +73,10 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   // Scroll to bottom on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isOpen]);
+    if (onMessagesChange) {
+      onMessagesChange(messages);
+    }
+  }, [messages, isOpen, onMessagesChange]);
 
   // Resizing Logic
   useEffect(() => {
@@ -109,7 +106,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const handleSendMessage = async (text: string = inputValue) => {
     if (!text.trim()) return;
 
-    const userMsg: Message = {
+    const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: text,
@@ -143,7 +140,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
       // Remove "Edwin"
       cleanContent = cleanContent.replace(/\*\*Edwin\*\*/gi, '').replace(/Edwin/gi, '');
 
-      const aiMsg: Message = {
+      const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: cleanContent,
@@ -155,7 +152,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
       setMessages(prev => [...prev, aiMsg]);
     } catch (error) {
       console.error("Chat error:", error);
-      const errorMsg: Message = {
+      const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: "Sorry, ik kon geen verbinding maken. Probeer het opnieuw.",
@@ -203,7 +200,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
     setCurrentRole(newRole);
     const roleInfo = ROLES.find(r => r.id === newRole);
     
-    const systemMsg: Message = {
+    const systemMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'assistant',
       content: `🔄 **Rol Gewijzigd**: Ik spreek nu als **${roleInfo?.label}**. \n_${roleInfo?.description}_`,
@@ -218,13 +215,15 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   };
 
   const confirmClearHistory = () => {
+    const activeRole = ROLES.find(r => r.id === currentRole);
     setMessages([{
       id: 'init',
       role: 'assistant',
-      content: `Geschiedenis gewist. Klaar voor een nieuwe start met **"${idea.name}"**.`,
+      content: `Geschiedenis gewist. Klaar voor een nieuwe start met **"${idea.name}"** als **${activeRole?.label}**.`,
       timestamp: Date.now(),
       roleLabel: 'System'
     }]);
+    setShowClearHistoryModal(false);
   };
 
   const handleCopyHistory = () => {
@@ -318,9 +317,18 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                    <p className="text-xs text-gray-400">AI-simulatie van mogelijke antwoorden op basis van context.</p>
                 </div>
              </div>
-             <button onClick={onToggle} className="text-gray-400 hover:text-white transition-colors">
-                <X className="w-6 h-6" />
-             </button>
+             <div className="flex items-center space-x-2">
+                <button 
+                  onClick={handleDownloadPDF} 
+                  className="text-gray-400 hover:text-neon-green transition-colors p-2 rounded-lg hover:bg-white/5"
+                  title="Download Chatgeschiedenis"
+                >
+                  <Download className="w-5 h-5" />
+                </button>
+                <button onClick={onToggle} className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5">
+                  <X className="w-6 h-6" />
+                </button>
+             </div>
           </div>
 
         {/* Role Selector */}

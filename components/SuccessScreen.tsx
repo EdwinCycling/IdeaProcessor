@@ -35,12 +35,14 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
             {TEXTS.SUCCESS.DESC}
         </p>
 
-        <button
-            onClick={onClose}
-            className="w-full py-4 bg-transparent border border-white/20 hover:border-white text-white font-bold rounded-sm transition-all uppercase tracking-widest hover:bg-white/5"
-        >
-            {TEXTS.SUCCESS.BTN_CLOSE}
-        </button>
+        <div className="space-y-4">
+          <button
+              onClick={onClose}
+              className="w-full py-4 bg-white text-exact-dark font-black rounded-sm transition-all uppercase tracking-widest hover:bg-gray-200 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+          >
+              {TEXTS.SUCCESS.BTN_CLOSE}
+          </button>
+        </div>
       </div>
     </div>
   );

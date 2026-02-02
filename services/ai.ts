@@ -15,7 +15,6 @@ const sanitizeInput = (text: string): string => {
 
 export const analyzeIdeas = async (context: string, ideas: Idea[]): Promise<AIAnalysisResult> => {
   // Use Backend API (Proxied to localhost:9998 or Netlify Function)
-  console.log("Using Backend API for Analysis");
   try {
       const response = await fetch('/api/analyze', {
           method: 'POST',
@@ -96,7 +95,6 @@ export const chatWithIdeaProfessor = async (
 
 export const generateIdeaDetails = async (context: string, idea: Idea): Promise<IdeaDetails> => {
   // Use Backend API (Proxied to localhost:9998 or Netlify Function)
-  console.log("Using Backend API for Detail Generation");
   try {
      const response = await fetch('/api/generate-details', {
          method: 'POST',

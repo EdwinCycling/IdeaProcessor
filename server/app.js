@@ -162,7 +162,16 @@ apiRouter.post('/generate-details', async (req, res) => {
           2. questions: 3 follow-up questions for the author.
           3. questionAnswers: 3 plausible, hypothetical answers to those questions (simulating the author).
           4. steps: 5 concrete implementation steps.
-          5. pbis: 4 Product Backlog Items (title, description, storyPoints usually 1,2,3,5,8,13).
+          5. pbis: 4 Product Backlog Items met de volgende velden:
+             - id: Unieke ID (bijv. PBI-001)
+             - title: Korte, krachtige titel
+             - userStory: Wie, wat, waarom formaat
+             - acceptanceCriteria: Lijst van minstens 3 criteria
+             - priority: Prioriteit (MoSCoW: Must, Should, Could, Won't)
+             - storyPoints: Fibonacci reeks (1, 2, 3, 5, 8, 13)
+             - dependencies: Eventuele afhankelijkheden of "Geen"
+             - businessValue: Verwachte opbrengst/waarde
+             - dorCheck: Altijd true als het aan de basis voldoet
           6. businessCase: A McKinsey-style breakdown (Problem, Solution, Strategic Fit, Financial Impact, Risks).
           7. devilsAdvocate: A critical analysis (The Critique, Blind Spots, Pre-Mortem of failure).
           8. marketing: Creative outputs (Slogan, LinkedIn Post text, Viral Tweet text, Target Audience).
@@ -174,7 +183,19 @@ apiRouter.post('/generate-details', async (req, res) => {
             "questions": ["q1", "q2", "q3"],
             "questionAnswers": ["a1", "a2", "a3"],
             "steps": ["s1", "s2", "s3", "s4", "s5"],
-            "pbis": [ { "title": "string", "description": "string", "storyPoints": number } ],
+            "pbis": [ 
+              { 
+                "id": "string",
+                "title": "string", 
+                "userStory": "string", 
+                "acceptanceCriteria": ["string"],
+                "priority": "string",
+                "storyPoints": number,
+                "dependencies": ["string"],
+                "businessValue": "string",
+                "dorCheck": boolean
+              } 
+            ],
             "businessCase": {
                "problemStatement": "string",
                "proposedSolution": "string",
@@ -228,10 +249,6 @@ apiRouter.post('/generate-details', async (req, res) => {
 });
 
 apiRouter.post('/chat', async (req, res) => {
-    // if (!client) {
-    //    return res.status(500).json({ error: "Server Error: API Key not configured" });
-    // }
-
     const { history, currentRole, context, idea, analysis } = req.body;
 
     try {
@@ -289,6 +306,80 @@ apiRouter.post('/chat', async (req, res) => {
     } catch (error) {
         console.error("Chat Error:", error);
         res.status(500).json({ error: "Chat failed", details: error.message });
+    }
+});
+
+apiRouter.post('/generate-follow-up-question', async (req, res) => {
+    const { context, idea, existingQuestions } = req.body;
+    
+    console.log("Generating follow-up question for:", idea?.name);
+
+    if (!idea || !idea.content) {
+        console.error("Follow-up generation: Missing idea or content");
+        return res.status(400).json({ error: "No idea or content provided" });
+    }
+
+    try {
+        const cleanContext = sanitizeInput(context || "");
+        const cleanIdeaContent = sanitizeInput(idea.content);
+        const cleanExistingQuestions = Array.isArray(existingQuestions) 
+            ? existingQuestions.map(q => `- ${sanitizeInput(q)}`).join('\n')
+            : "Geen eerdere vragen beschikbaar.";
+
+        const prompt = `
+          <system_instruction>
+          Je bent een expert innovatie facilitator.
+          Je doel is om een nieuwe brainstormsessie te starten die voortborduurt op een specifiek idee.
+          
+          <input_data>
+          CONTEXT VAN DE ORIGINELE SESSIE:
+          "${cleanContext}"
+          
+          HET IDEE VAN DE GEBRUIKER:
+          "${cleanIdeaContent}"
+          
+          REEDS GEGENEREERDE VERVOLGVRAGEN (uit de detail-analyse):
+          ${cleanExistingQuestions}
+          </input_data>
+
+          <task>
+          Bedenk EEN ultieme, verdiepende vervolgvraag voor een nieuwe sessie.
+          
+          Richtlijnen voor de vraag:
+          1. De vraag moet NIET een herhaling zijn van de bovenstaande vragen.
+          2. De vraag moet "dieper" gaan: vraag naar 'hoe', 'waarom', of de concrete uitvoering.
+          3. De vraag moet geschikt zijn voor een breed publiek (niet te technisch jargon).
+          4. De vraag moet inspireren en uitnodigen tot creatieve oplossingen.
+          5. De vraag moet in het Nederlands zijn.
+          </task>
+          </system_instruction>
+   
+          Geef ALLEEN de nieuwe vraag terug als platte tekst. Geen inleiding, geen quotes.
+        `;
+
+        const completion = await client.chat.completions.create({
+            messages: [
+                { role: "system", content: "Je bent een creatieve tekstschrijver." },
+                { role: "user", content: prompt }
+            ],
+            model: CEREBRAS_MODEL,
+            temperature: 0.7,
+        });
+
+        const question = completion.choices[0].message.content.trim().replace(/^"|"$/g, '');
+        
+        if (!question) {
+            throw new Error("Empty response from AI");
+        }
+
+        console.log("Generated question:", question);
+        res.json({ question });
+
+    } catch (error) {
+        console.error("Follow-up generation error:", error);
+        // Fallback question if AI fails
+        const fallbackQuestion = `Hoe kunnen we het idee "${idea.name}" verder uitbouwen voor maximale impact?`;
+        res.json({ question: fallbackQuestion, error: error.message });
     }
 });
 

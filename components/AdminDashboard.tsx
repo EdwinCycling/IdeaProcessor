@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon } from 'lucide-react';
+import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
-import { Idea, AIAnalysisResult, IdeaDetails } from '../types';
+import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage } from '../types';
 import { analyzeIdeas, generateIdeaDetails } from '../services/ai';
 import ChatAssistant from './ChatAssistant';
 import ConfirmationModal from './ConfirmationModal';
+import IdeasOverviewModal from './IdeasOverviewModal';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -33,17 +34,62 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedIdeaId, setSelectedIdeaId] = useState<string | null>(null);
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [selectedManualIdeaId, setSelectedManualIdeaId] = useState<string | null>(null);
+  const [showOverview, setShowOverview] = useState(false);
 
   // Detail State
   const [ideaDetails, setIdeaDetails] = useState<IdeaDetails | null>(null);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
   const [showPBIModal, setShowPBIModal] = useState(false);
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [followUpQuestion, setFollowUpQuestion] = useState('');
+  const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>('GENERAL');
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [isStarting, setIsStarting] = useState(false);
+  const [startProgress, setStartProgress] = useState(0);
+  const [isStartingFollowUp, setIsStartingFollowUp] = useState(false);
+  const [followUpProgress, setFollowUpProgress] = useState(0);
+
+  // Simulation of progress for AI calls
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isAnalyzing || isGeneratingDetails || isGeneratingFollowUp || isStarting || isStartingFollowUp) {
+      if (isStarting) setStartProgress(0);
+      else if (isStartingFollowUp) setFollowUpProgress(0);
+      else setGenerationProgress(0);
+      
+      interval = setInterval(() => {
+        if (isStarting) {
+          setStartProgress(prev => {
+            if (prev >= 95) return prev;
+            return prev + (100 / (20)); // Faster for start (2 seconds roughly)
+          });
+        } else if (isStartingFollowUp) {
+          setFollowUpProgress(prev => {
+            if (prev >= 95) return prev;
+            return prev + (100 / (20)); // Also roughly 2 seconds
+          });
+        } else {
+          setGenerationProgress(prev => {
+            if (prev >= 95) return prev;
+            return prev + (100 / (10 * 10));
+          });
+        }
+      }, 100);
+    } else {
+      setGenerationProgress(0);
+      setStartProgress(0);
+      setFollowUpProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [isAnalyzing, isGeneratingDetails, isGeneratingFollowUp, isStarting, isStartingFollowUp]);
 
   // Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(450);
   const [chatPastedText, setChatPastedText] = useState('');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const handleCopyToChat = (text: string) => {
     setChatPastedText(`Ik wil graag dieper ingaan op dit punt: "${text}"`);
@@ -52,6 +98,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
   const handleAddToChat = (text: string) => {
     handleCopyToChat(text);
+  };
+
+  const handleManualSelectIdea = async (idea: Idea) => {
+    if (!db) return;
+    try {
+      const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+      await updateDoc(sessionRef, {
+        selectedManualIdeaId: idea.id
+      });
+      
+      // Add the idea to analysis.topIdeas if it's not already there
+      if (analysis && !analysis.topIdeas.some(i => i.id === idea.id)) {
+        const updatedAnalysis = {
+          ...analysis,
+          topIdeas: [...analysis.topIdeas.slice(0, 3), idea]
+        };
+        setAnalysis(updatedAnalysis);
+      }
+
+      setShowOverview(false);
+      setSelectedManualIdeaId(idea.id);
+      setSelectedIdeaId(idea.id); // Auto-select the newly added idea
+    } catch (err) {
+      console.error("Error selecting idea:", err);
+    }
   };
 
   // Timer States
@@ -130,25 +201,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   // Phase 2: Live Data & Timer
   useEffect(() => {
     let timerInterval: ReturnType<typeof setInterval>;
-    let unsubscribe: () => void;
+    let unsubscribeIdeas: () => void;
+    let unsubscribeSession: () => void;
 
     if (phase === 'LIVE' && !isClosing) {
       if (!db) {
         console.error("Firestore not initialized");
         return;
       }
-      // 1. Real-time Firestore Listener
+      // 1. Real-time Firestore Listener for Ideas
       const q = query(
         collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS), 
         orderBy("timestamp", "asc")
       );
       
-      unsubscribe = onSnapshot(q, (snapshot) => {
+      unsubscribeIdeas = onSnapshot(q, (snapshot) => {
         const newIdeas = snapshot.docs.map(doc => ({ 
             id: doc.id, 
             ...doc.data() 
         })) as Idea[];
         setIdeas(newIdeas);
+      });
+
+      // 1b. Real-time Firestore Listener for Session (manual idea selection)
+      const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+      unsubscribeSession = onSnapshot(sessionRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data.selectedManualIdeaId) {
+            setSelectedManualIdeaId(data.selectedManualIdeaId);
+          }
+        }
       });
 
       // 2. Session Duration Timer
@@ -158,7 +241,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     }
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribeIdeas) unsubscribeIdeas();
+      if (unsubscribeSession) unsubscribeSession();
       clearInterval(timerInterval);
     };
   }, [phase, isClosing]);
@@ -201,13 +285,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     if (phase === 'ANALYSIS' && !analysis) {
       const runAnalysis = async () => {
         setIsAnalyzing(true);
+        
+        // Find manual idea if selected
+        const manualIdea = ideas.find(i => i.id === selectedManualIdeaId);
+        
         const result = await analyzeIdeas(context, ideas);
+        
+        // If we have a manual idea, ensure it's in topIdeas (or add as 4th)
+        if (manualIdea && result) {
+            const isAlreadyTop = result.topIdeas.some(i => i.id === manualIdea.id);
+            if (!isAlreadyTop) {
+                result.topIdeas = [...result.topIdeas, manualIdea];
+            }
+            // Auto-select the manual idea if it was chosen
+            setSelectedIdeaId(manualIdea.id);
+        }
+        
         setAnalysis(result);
         setIsAnalyzing(false);
       };
       runAnalysis();
     }
-  }, [phase, context, ideas]);
+  }, [phase, context, ideas, selectedManualIdeaId]);
 
   // Phase 3b: Animate Score
   useEffect(() => {
@@ -221,6 +320,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
   const handleStartSession = async () => {
     if (!context.trim()) return;
+    
+    setIsStarting(true);
     
     // Clear local state
     setIdeas([]);
@@ -242,16 +343,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
           updatedAt: Date.now()
         }, { merge: true });
 
-        // 3. ONLY THEN Start listener (Phase change triggers useEffect)
-        setPhase('LIVE');
+        // Small delay to show 100% progress
+        setStartProgress(100);
+        setTimeout(() => {
+          setIsStarting(false);
+          setPhase('LIVE');
+        }, 500);
       } catch (err) {
         console.error("Error starting session:", err);
+        setIsStarting(false);
         // Fallback: start anyway if cleanup fails, but warn
         setPhase('LIVE');
       }
     } else {
         // Mock mode
-        setPhase('LIVE');
+        setStartProgress(100);
+        setTimeout(() => {
+          setIsStarting(false);
+          setPhase('LIVE');
+        }, 500);
     }
   };
 
@@ -280,7 +390,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   };
 
   const handleSelectIdea = async () => {
-    if (!selectedIdeaId || !analysis) return;
+    if (!selectedIdeaId || !analysis || isGeneratingDetails) return;
     
     setIsGeneratingDetails(true);
     // Reset tab to general
@@ -302,10 +412,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       setIdeas([]);
       setAnalysis(null);
       setSelectedIdeaId(null);
+      setSelectedManualIdeaId(null);
       setIdeaDetails(null);
       setSessionDuration(0);
       setIsClosing(false);
       setAnimatedScore(0);
+
+      // Also reset manual selection in Firestore
+      if (db) {
+        updateDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
+          selectedManualIdeaId: null
+        }).catch(err => console.error("Error resetting manual idea:", err));
+      }
   };
 
   const handleBackToAnalysis = () => {
@@ -565,6 +683,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         yPos += contentLines.length * 5 + 8; // Spacing between items
     });
 
+    // --- CHAT HISTORY PAGE (New) ---
+    if (chatMessages && chatMessages.length > 0) {
+        doc.addPage();
+        yPos = 20;
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(0);
+        doc.text("Chatgeschiedenis", margin, yPos);
+        yPos += 15;
+        
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+
+        chatMessages.forEach((msg) => {
+            // Check for page break
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            // Role Header
+            doc.setFont("helvetica", "bold");
+            const roleText = msg.role === 'assistant' ? 'Assistent' : 'Gebruiker';
+            doc.setTextColor(msg.role === 'assistant' ? 70 : 0);
+            doc.text(`${roleText}:`, margin, yPos);
+            
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString('nl-NL');
+            doc.setFont("helvetica", "italic");
+            doc.setTextColor(120);
+            doc.text(timeStr, 170, yPos);
+            yPos += 5;
+
+            // Message Content
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(0);
+            const contentLines = doc.splitTextToSize(msg.content, 170);
+            doc.text(contentLines, margin, yPos);
+            
+            yPos += contentLines.length * 5 + 8; // Spacing between items
+        });
+    }
+
     // --- SAVE PDF TO FIRESTORE (Base64) ---
     try {
         if (db) {
@@ -590,12 +751,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const handleExportCSV = () => {
     if (!ideaDetails || !selectedIdea) return;
     
-    const headers = ["Title", "Story Points", "Description"];
+    const headers = ["ID", "Title", "User Story", "Story Points", "Priority", "Acceptance Criteria", "Business Value", "Dependencies"];
     // Map data to CSV rows
     const rows = ideaDetails.pbis.map(pbi => [
+      `"${pbi.id || ''}"`,
       `"${pbi.title.replace(/"/g, '""')}"`,
+      `"${(pbi.userStory || pbi.description || '').replace(/"/g, '""')}"`,
       pbi.storyPoints,
-      `"${pbi.description.replace(/"/g, '""')}"`
+      `"${(pbi.priority || '').replace(/"/g, '""')}"`,
+      `"${(pbi.acceptanceCriteria?.join('; ') || '').replace(/"/g, '""')}"`,
+      `"${(pbi.businessValue || '').replace(/"/g, '""')}"`,
+      `"${(pbi.dependencies?.join('; ') || '').replace(/"/g, '""')}"`
     ]);
     
     // Combine headers and rows
@@ -610,6 +776,116 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleStressTest = async () => {
+    if (!db) return;
+    const stressIdeas = [
+      "AI-gestuurde robot voor in het magazijn",
+      "Duurzame verpakking van zeewier",
+      "Slimme bril voor orderpickers",
+      "Zelfrijdende bezorgbusjes voor de stad",
+      "Blockchain voor transparante supply chain",
+      "VR-training voor nieuwe medewerkers",
+      "IoT sensoren voor realtime voorraadbeheer",
+      "Automatische factuurverwerking met machine learning",
+      "Gepersonaliseerde marketing met AI",
+      "Predictive maintenance voor productiemachines"
+    ];
+
+    try {
+      const ideasRef = collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS);
+      const promises = stressIdeas.map(content => {
+        return addDoc(ideasRef, {
+          name: `Test Gebruiker ${Math.floor(Math.random() * 1000)}`,
+          content: content,
+          timestamp: Date.now()
+        });
+      });
+      await Promise.all(promises);
+    } catch (e) {
+      // Silence error
+    }
+  };
+
+  const handleOpenFollowUpModal = async () => {
+    if (!selectedIdea || isGeneratingFollowUp) {
+        return;
+    }
+    
+    setShowFollowUpModal(true);
+    setIsGeneratingFollowUp(true);
+    setFollowUpQuestion(''); // Clear previous question
+
+    try {
+        const response = await fetch('/api/generate-follow-up-question', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                context, 
+                idea: selectedIdea,
+                existingQuestions: ideaDetails?.questions || [] 
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        setFollowUpQuestion(data.question || '');
+        
+        if (data.error) {
+            // AI generation had an error
+        }
+    } catch (err) {
+        // Fallback in case of network/server error
+        setFollowUpQuestion(`Hoe kunnen we het idee "${selectedIdea.name}" verder uitbouwen voor maximale impact?`);
+    } finally {
+        setIsGeneratingFollowUp(false);
+    }
+  };
+
+  const handleStartFollowUpSession = async () => {
+    if (!db || !followUpQuestion.trim()) return;
+    
+    setIsStartingFollowUp(true);
+    
+    try {
+        const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+        
+        // 1. Clear all ideas from the current session
+        const ideasRef = collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS);
+        const ideasSnapshot = await getDocs(ideasRef);
+        const deletePromises = ideasSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+
+        // 2. Update session with new question and reset state
+        await updateDoc(sessionRef, {
+            question: followUpQuestion,
+            phase: 'LIVE',
+            selectedIdeaId: null,
+            selectedManualIdeaId: null,
+            analysis: null
+        });
+
+        // Small delay to show 100% progress
+        setFollowUpProgress(100);
+        setTimeout(() => {
+            setIsStartingFollowUp(false);
+            // 3. Reset local state
+            setShowFollowUpModal(false);
+            setPhase('LIVE');
+            setIdeas([]);
+            setSelectedIdeaId(null);
+            setIdeaDetails(null);
+            setContext(followUpQuestion);
+        }, 500);
+        
+    } catch (err) {
+        setIsStartingFollowUp(false);
+        console.error("Error starting follow-up session:", err);
+    }
   };
 
   const selectedIdea = analysis?.topIdeas.find(i => i.id === selectedIdeaId);
@@ -645,10 +921,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         </div>
         <div className="flex items-center space-x-4">
             {phase === 'LIVE' && (
-                <div className="flex items-center bg-black/50 px-3 py-1 rounded border border-white/10 text-neon-cyan font-mono animate-pulse-slow">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>{formatDuration(sessionDuration)}</span>
-                </div>
+                <>
+                    <button 
+                        onClick={handleStressTest}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-bold transition-all flex items-center shadow-[0_0_10px_rgba(22,163,74,0.3)] border border-green-500/50"
+                        title="Voeg 10 test-ideeën toe"
+                    >
+                        <Zap className="w-3 h-3 mr-1" />
+                        STRESS TEST (+10)
+                    </button>
+                    <div className="h-4 w-px bg-white/20"></div>
+                    <div className="flex items-center bg-black/50 px-3 py-1 rounded border border-white/10 text-neon-cyan font-mono animate-pulse-slow">
+                        <Clock className="w-4 h-4 mr-2" />
+                        <span>{formatDuration(sessionDuration)}</span>
+                    </div>
+                </>
             )}
             <div className="h-4 w-px bg-white/20"></div>
             <button 
@@ -786,15 +1073,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 
                 <button 
                   onClick={handleStartSession}
-                  disabled={context.length < 5}
-                  className={`w-full py-5 text-lg font-bold rounded-md flex items-center justify-center transition-all ${
-                    context.length >= 5 
+                  disabled={context.length < 5 || isStarting}
+                  className={`w-full py-5 text-lg font-bold rounded-md flex items-center justify-center transition-all relative overflow-hidden ${
+                    context.length >= 5 && !isStarting
                       ? 'bg-neon-green text-black hover:bg-green-400 shadow-[0_0_20px_rgba(10,255,10,0.3)]' 
                       : 'bg-white/5 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  <Play className="mr-2 w-5 h-5" />
-                  {TEXTS.ADMIN_DASHBOARD.SETUP.BTN_START}
+                  {isStarting && (
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-white/20 transition-all duration-300 ease-out"
+                      style={{ width: `${startProgress}%` }}
+                    />
+                  )}
+                  {isStarting ? (
+                    <>
+                      <div className="animate-spin mr-3 h-5 w-5 border-2 border-black border-t-transparent rounded-full" />
+                      <span>{Math.round(startProgress)}% Bezig met starten...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 w-5 h-5" />
+                      {TEXTS.ADMIN_DASHBOARD.SETUP.BTN_START}
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -889,15 +1191,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         {/* PHASE 3: ANALYSIS DASHBOARD */}
         {phase === 'ANALYSIS' && (
           <div className="flex flex-col h-full animate-in slide-in-from-bottom-4 duration-500 overflow-y-auto">
-            {isAnalyzing || isGeneratingDetails ? (
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <div className="w-16 h-16 border-4 border-exact-red border-t-transparent rounded-full animate-spin mb-6"></div>
-                <h2 className="text-2xl font-bold text-white animate-pulse">
-                    {isGeneratingDetails ? TEXTS.ADMIN_DASHBOARD.DETAIL.LOADING : TEXTS.ADMIN_DASHBOARD.ANALYSIS.LOADING}
-                </h2>
-              </div>
-            ) : (
-              <div className="space-y-8 pb-8">
+            <div className="space-y-8 pb-8">
                 {/* Header Stats */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-6">
                   <div>
@@ -992,9 +1286,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 {/* Top Ideas Grid */}
                 <div>
                    <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-                     {TEXTS.ADMIN_DASHBOARD.ANALYSIS.TOP_3_TITLE}
+                     {analysis?.topIdeas.length && analysis.topIdeas.length > 3 
+                       ? "Top Ideeën & Geselecteerd Idee" 
+                       : TEXTS.ADMIN_DASHBOARD.ANALYSIS.TOP_3_TITLE}
                    </h3>
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       {analysis?.topIdeas.map((idea) => (
                         <div 
                           key={idea.id}
@@ -1025,30 +1321,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 </div>
 
                 {/* Next Step Action */}
-                <div className="flex justify-end pt-4 gap-4">
-                  <button 
-                    onClick={handleReset}
-                    className="px-6 py-4 bg-exact-red text-white hover:bg-red-700 font-bold rounded flex items-center transition-all"
-                  >
-                    <RotateCcw className="mr-2 w-5 h-5" />
-                    {TEXTS.ADMIN_DASHBOARD.DETAIL.BTN_RESET}
-                  </button>
-                  <button 
-                    onClick={handleSelectIdea}
-                    disabled={!selectedIdeaId}
-                    className={`px-8 py-4 font-bold rounded-md flex items-center transition-all ${
-                      selectedIdeaId 
-                        ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20' 
-                        : 'bg-white/10 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {TEXTS.ADMIN_DASHBOARD.ANALYSIS.BTN_NEXT}
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </button>
+                <div className="flex justify-between items-center pt-4">
+                  <div>
+                    <button 
+                      onClick={handleReset}
+                      className="px-6 py-4 bg-white/10 text-white hover:bg-white/20 font-bold rounded flex items-center transition-all border border-white/10"
+                    >
+                      <RotateCcw className="mr-2 w-5 h-5" />
+                      {TEXTS.ADMIN_DASHBOARD.DETAIL.BTN_RESET}
+                    </button>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setShowOverview(true)}
+                      className="px-6 py-4 bg-white/10 text-white hover:bg-white/20 font-bold rounded flex items-center transition-all border border-white/10"
+                    >
+                      <List className="mr-2 w-5 h-5" />
+                      Bekijk alle ideeën
+                    </button>
+                    <button 
+                      onClick={handleSelectIdea}
+                      disabled={!selectedIdeaId}
+                      className={`px-8 py-4 font-bold rounded-md flex items-center transition-all ${
+                        selectedIdeaId 
+                          ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20' 
+                          : 'bg-white/10 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {TEXTS.ADMIN_DASHBOARD.ANALYSIS.BTN_NEXT}
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
               </div>
-            )}
           </div>
         )}
 
@@ -1377,6 +1684,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <div className="flex-shrink-0 border-t border-white/10 pt-4 pb-4 bg-exact-dark z-20 flex flex-nowrap overflow-x-auto gap-4 justify-between items-center sticky bottom-0 shadow-2xl">
                      <div className="flex gap-4 flex-nowrap">
                         <button 
+                            onClick={handleOpenFollowUpModal}
+                            className="whitespace-nowrap px-6 py-3 bg-neon-green/10 text-neon-green border border-neon-green/50 hover:bg-neon-green/20 font-bold rounded flex items-center transition-all"
+                        >
+                            <Play className="mr-2 w-4 h-4" />
+                            Start Vervolg Sessie
+                        </button>
+                        <button 
                             onClick={() => setShowPBIModal(true)}
                             className="whitespace-nowrap px-6 py-3 bg-neon-purple/10 text-neon-purple border border-neon-purple/50 hover:bg-neon-purple/20 font-bold rounded flex items-center transition-all"
                         >
@@ -1423,8 +1737,48 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     onWidthChange={setChatWidth}
                     pastedText={chatPastedText}
                     onClearPastedText={() => setChatPastedText('')}
+                    onMessagesChange={setChatMessages}
                 />
             </div>
+        )}
+
+        {/* Global Loading Overlay with Progress */}
+        {(isAnalyzing || isGeneratingDetails || isGeneratingFollowUp) && (
+          <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="max-w-md w-full text-center">
+              <div className="relative w-24 h-24 mx-auto mb-8">
+                <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
+                <div 
+                  className="absolute inset-0 border-4 border-exact-red rounded-full animate-spin border-t-transparent"
+                  style={{ animationDuration: '1.5s' }}
+                ></div>
+                <div className="absolute inset-0 flex items-center justify-center font-mono text-xl font-bold text-white">
+                  {Math.round(generationProgress)}%
+                </div>
+              </div>
+
+              <h2 className="text-3xl font-black text-white mb-4 tracking-tight">
+                {isGeneratingFollowUp ? "Vervolgvraag genereren..." : (isGeneratingDetails ? TEXTS.ADMIN_DASHBOARD.DETAIL.LOADING : TEXTS.ADMIN_DASHBOARD.ANALYSIS.LOADING)}
+              </h2>
+              
+              <p className="text-gray-400 mb-8 font-mono text-sm uppercase tracking-widest">
+                AI engine is working on your innovation plan...
+              </p>
+
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                <div 
+                  className="h-full bg-gradient-to-r from-exact-red to-red-500 transition-all duration-300 ease-out shadow-[0_0_15px_rgba(225,0,0,0.5)]"
+                  style={{ width: `${generationProgress}%` }}
+                ></div>
+              </div>
+              
+              <div className="mt-4 flex justify-between text-[10px] font-mono text-gray-600 uppercase tracking-tighter">
+                <span>Initializing AI</span>
+                <span>Analyzing Vibe</span>
+                <span>Generating Roadmap</span>
+              </div>
+            </div>
+          </div>
         )}
 
       </main>
@@ -1440,6 +1794,88 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         cancelText="Nee, Terug"
         variant="danger"
       />
+
+      {/* Follow-up Session Modal */}
+      {showFollowUpModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-exact-panel border border-white/20 rounded-xl max-w-2xl w-full p-8 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neon-green via-neon-cyan to-neon-purple"></div>
+                
+                <h2 className="text-3xl font-black text-white mb-6 flex items-center">
+                    <Zap className="mr-3 text-neon-green animate-pulse" />
+                    Vervolg Sessie Starten
+                </h2>
+
+                <p className="text-gray-400 mb-6">
+                    De AI heeft een vervolgvraag gegenereerd op basis van het geselecteerde idee. 
+                    Je kunt de vraag hieronder aanpassen voordat je de nieuwe sessie start.
+                </p>
+
+                <div className="bg-black/40 border border-white/10 rounded-lg p-6 mb-8 relative group">
+                    <label className="block text-xs font-mono text-neon-green uppercase tracking-widest mb-3">Brainstorm Vraag</label>
+                    {isGeneratingFollowUp ? (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="w-8 h-8 border-2 border-neon-green border-t-transparent rounded-full animate-spin mr-3"></div>
+                            <span className="text-neon-green font-mono animate-pulse">Vraag genereren...</span>
+                        </div>
+                    ) : (
+                        <textarea 
+                            value={followUpQuestion}
+                            onChange={(e) => setFollowUpQuestion(e.target.value)}
+                            className="w-full bg-transparent border-none text-xl text-white focus:ring-0 resize-none min-h-[120px] font-medium leading-relaxed"
+                            placeholder="Typ hier de nieuwe brainstorm vraag..."
+                        />
+                    )}
+                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Edit3 className="w-4 h-4 text-gray-500" />
+                    </div>
+                </div>
+
+                <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg mb-8 flex items-start">
+                    <AlertTriangle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-200/70">
+                        <strong className="text-red-400">Let op:</strong> Bij het starten van een vervolgsessie worden alle huidige ideeën uit de database verwijderd om plaats te maken voor de nieuwe brainstorm. Zorg dat je eventuele exports (PBI/PDF) al hebt gedaan.
+                    </p>
+                </div>
+
+                <div className="flex gap-4">
+                    <button 
+                        onClick={() => setShowFollowUpModal(false)}
+                        className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-lg transition-all border border-white/10"
+                    >
+                        Annuleren
+                    </button>
+                    <button 
+                        onClick={handleStartFollowUpSession}
+                        disabled={isGeneratingFollowUp || isStartingFollowUp || !followUpQuestion.trim()}
+                        className={`flex-[2] px-6 py-4 font-bold rounded-lg flex items-center justify-center transition-all relative overflow-hidden ${
+                            isGeneratingFollowUp || isStartingFollowUp || !followUpQuestion.trim()
+                                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                : 'bg-neon-green text-black hover:scale-[1.02] shadow-[0_0_20px_rgba(10,255,10,0.2)]'
+                        }`}
+                    >
+                        {isStartingFollowUp && (
+                            <div 
+                                className="absolute left-0 top-0 h-full bg-white/20 transition-all duration-300 ease-out"
+                                style={{ width: `${followUpProgress}%` }}
+                            />
+                        )}
+                        {isStartingFollowUp ? (
+                            <>
+                                <div className="animate-spin mr-3 h-5 w-5 border-2 border-black border-t-transparent rounded-full" />
+                                <span>{Math.round(followUpProgress)}% Bezig met starten...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Play className="mr-2 w-5 h-5 fill-current" />
+                                Start Vervolg Sessie
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
 
       {/* Settings Modal */}
       {showSettings && (
@@ -1513,18 +1949,75 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     {TEXTS.ADMIN_DASHBOARD.DETAIL.MODAL_PBI_TITLE}
                 </h2>
 
-                <div className="grid grid-cols-1 gap-4 max-h-[70vh] overflow-y-auto">
+                <div className="grid grid-cols-1 gap-6 max-h-[70vh] overflow-y-auto pr-2">
                     {ideaDetails.pbis.map((pbi, idx) => (
-                        <div key={idx} className="bg-white/5 border border-white/10 p-5 rounded hover:border-neon-purple/50 transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-lg text-white">{pbi.title}</h3>
-                                <span className="bg-black/40 border border-white/20 px-2 py-1 rounded text-xs font-mono text-neon-purple">
-                                    {pbi.storyPoints} PTS
-                                </span>
+                        <div key={idx} className="bg-white/5 border border-white/10 p-6 rounded-lg hover:border-neon-purple/50 transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center">
+                                    <span className="bg-neon-purple/20 text-neon-purple px-2 py-1 rounded text-xs font-mono mr-3 border border-neon-purple/30">
+                                        {pbi.id || `PBI-${idx + 1}`}
+                                    </span>
+                                    <h3 className="font-bold text-xl text-white">{pbi.title}</h3>
+                                </div>
+                                <div className="flex gap-2">
+                                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${
+                                        pbi.priority?.toLowerCase().includes('must') ? 'bg-red-500/10 text-red-500 border-red-500/30' :
+                                        pbi.priority?.toLowerCase().includes('should') ? 'bg-orange-500/10 text-orange-500 border-orange-500/30' :
+                                        'bg-blue-500/10 text-blue-500 border-blue-500/30'
+                                    }`}>
+                                        {pbi.priority || 'Medium'}
+                                    </span>
+                                    <span className="bg-black/40 border border-white/20 px-3 py-1 rounded text-xs font-bold text-neon-purple">
+                                        {pbi.storyPoints} Story Points
+                                    </span>
+                                </div>
                             </div>
-                            <p className="text-gray-400 text-sm">
-                                {pbi.description}
-                            </p>
+                            
+                            <div className="space-y-4">
+                                <div className="bg-black/20 p-4 rounded border-l-2 border-neon-purple/50">
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">User Story</h4>
+                                    <p className="text-gray-200 text-sm leading-relaxed">{pbi.userStory || pbi.description}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center">
+                                            <Check className="w-3 h-3 mr-1 text-neon-green" /> Acceptatiecriteria
+                                        </h4>
+                                        <ul className="space-y-1">
+                                            {pbi.acceptanceCriteria?.map((ac, i) => (
+                                                <li key={i} className="text-gray-400 flex items-start">
+                                                    <span className="text-neon-green mr-2">•</span>
+                                                    {ac}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Business Value</h4>
+                                            <p className="text-gray-400 italic">{pbi.businessValue || 'Niet gespecificeerd'}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Dependencies</h4>
+                                            <div className="flex flex-wrap gap-1">
+                                                {pbi.dependencies?.map((dep, i) => (
+                                                    <span key={i} className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-gray-500 border border-white/10">
+                                                        {dep}
+                                                    </span>
+                                                )) || <span className="text-gray-600">Geen</span>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                                            <span className="text-xs font-bold text-gray-500 uppercase">Definition of Ready</span>
+                                            <span className={`flex items-center text-xs ${pbi.dorCheck ? 'text-neon-green' : 'text-gray-500'}`}>
+                                                {pbi.dorCheck ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                                                {pbi.dorCheck ? 'READY' : 'PENDING'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -1541,6 +2034,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         </div>
       )}
 
+      {/* Ideas Overview Modal */}
+      <IdeasOverviewModal 
+        isOpen={showOverview}
+        onClose={() => setShowOverview(false)}
+        ideas={ideas}
+        question={context}
+        onSelectIdea={handleManualSelectIdea}
+      />
     </div>
   );
 };
