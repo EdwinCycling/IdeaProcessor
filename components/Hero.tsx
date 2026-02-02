@@ -48,7 +48,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button 
                 onClick={onStart}
-                className="group relative px-8 py-4 bg-exact-red hover:bg-red-700 text-white font-bold rounded-sm transition-all neon-glow flex items-center justify-center"
+                className="group relative px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-sm transition-all neon-glow-green flex items-center justify-center"
               >
                 {TEXTS.HERO.CTA_PRIMARY}
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
