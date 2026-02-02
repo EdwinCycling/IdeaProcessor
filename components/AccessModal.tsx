@@ -60,12 +60,14 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
               value={code}
               onChange={(e) => {
                 setCode(e.target.value);
-                setError(false);
+                if (!blockedUntil) setError(false);
               }}
-              placeholder={TEXTS.MODALS.ACCESS.PLACEHOLDER}
-              className={`w-full bg-black/50 border ${error ? 'border-exact-red animate-pulse' : 'border-white/20'} rounded-sm px-4 py-4 text-center text-2xl tracking-widest font-mono text-white focus:outline-none focus:border-exact-red transition-all placeholder:text-gray-700 uppercase`}
+              placeholder={blockedUntil ? `GEBLOKKEERD (${getTimeRemaining()}s)` : TEXTS.MODALS.ACCESS.PLACEHOLDER}
+              disabled={!!blockedUntil}
+              className={`w-full bg-black/50 border ${error ? 'border-exact-red animate-pulse' : 'border-white/20'} rounded-sm px-4 py-4 text-center text-2xl tracking-widest font-mono text-white focus:outline-none focus:border-exact-red transition-all placeholder:text-gray-700 uppercase ${blockedUntil ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
-            {error && <p className="text-exact-red text-xs text-center mt-2">{TEXTS.MODALS.ACCESS.ERROR}</p>}
+            {error && !blockedUntil && <p className="text-exact-red text-xs text-center mt-2">{TEXTS.MODALS.ACCESS.ERROR}</p>}
+            {blockedUntil && <p className="text-exact-red text-xs text-center mt-2">Te veel pogingen. Wacht {getTimeRemaining()} seconden.</p>}
           </div>
 
           <div className="flex gap-3">

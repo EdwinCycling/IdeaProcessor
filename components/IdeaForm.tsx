@@ -73,6 +73,10 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
         timestamp: Date.now()
       });
       
+      // Set cooldown
+      localStorage.setItem('last_idea_submission', Date.now().toString());
+      setCooldown(SUBMISSION_COOLDOWN / 1000);
+
       setIsSubmitting(false);
       onSubmit();
     } catch (error) {
@@ -157,6 +161,8 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
             >
               {isSubmitting ? (
                 <span className="animate-pulse">{TEXTS.FORM.BTN_SENDING}</span>
+              ) : cooldown > 0 ? (
+                <span>Even geduld ({cooldown}s)...</span>
               ) : (
                 <>
                   {TEXTS.FORM.BTN_SUBMIT} <Send className="ml-2 w-4 h-4" />
