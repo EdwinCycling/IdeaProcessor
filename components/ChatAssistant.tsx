@@ -214,21 +214,23 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   };
 
   const handleClearHistory = () => {
-    if (window.confirm("Weet je zeker dat je de chatgeschiedenis wilt wissen?")) {
-      setMessages([{
-        id: 'init',
-        role: 'assistant',
-        content: `Geschiedenis gewist. Klaar voor een nieuwe start met **"${idea.name}"**.`,
-        timestamp: Date.now(),
-        roleLabel: 'System'
-      }]);
-    }
+    setShowClearHistoryModal(true);
+  };
+
+  const confirmClearHistory = () => {
+    setMessages([{
+      id: 'init',
+      role: 'assistant',
+      content: `Geschiedenis gewist. Klaar voor een nieuwe start met **"${idea.name}"**.`,
+      timestamp: Date.now(),
+      roleLabel: 'System'
+    }]);
   };
 
   const handleCopyHistory = () => {
     const text = messages.map(m => `[${m.roleLabel || m.role}]: ${m.content}`).join('\n\n');
     navigator.clipboard.writeText(text);
-    alert("Chatgeschiedenis gekopieerd naar klembord!");
+    setShowCopySuccessModal(true);
   };
 
   const handleDownloadPDF = () => {
