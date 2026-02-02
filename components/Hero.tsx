@@ -94,14 +94,15 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
              >
                 <div className="h-full w-full bg-gray-900 rounded-[1.7rem] overflow-hidden relative">
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
-                         <img src="/QR.jpg" alt="Scan QR" className="w-32 h-32 mb-4 rounded-lg border-2 border-white/20" />
-                         <div className="text-xs font-mono text-neon-cyan mb-2">SCAN TO JOIN</div>
-                         <a href="https://ideaprocessor.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-[10px] text-center text-gray-400 font-mono break-all px-2 hover:text-white transition-colors">
-                           https://ideaprocessor.netlify.app/
+                         <img src="/QR.jpg" alt="Scan QR" className="w-28 h-28 mb-3 rounded-lg border-2 border-white/20" />
+                         <div className="text-xs font-mono text-neon-cyan mb-1">SCAN TO JOIN</div>
+                         <div className="text-[10px] font-mono text-gray-500 mb-2">of ga naar:</div>
+                         <a href="https://ideaprocessor.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-center text-white font-mono break-all px-2 hover:text-neon-cyan transition-colors bg-white/10 py-1 rounded border border-white/10 mb-2">
+                           ideaprocessor.netlify.app
                          </a>
-                         <div className="mt-6 px-4 w-full">
-                             <div className="h-8 w-full bg-white/10 rounded border border-white/20 mb-2 animate-pulse"></div>
-                             <div className="h-8 w-3/4 bg-white/10 rounded border border-white/20 animate-pulse delay-75"></div>
+                         <div className="mt-4 px-4 w-full opacity-50">
+                             <div className="h-6 w-full bg-white/10 rounded border border-white/20 mb-2 animate-pulse"></div>
+                             <div className="h-6 w-3/4 bg-white/10 rounded border border-white/20 animate-pulse delay-75"></div>
                          </div>
                     </div>
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-b-xl"></div>
