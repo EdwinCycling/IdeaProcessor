@@ -53,7 +53,11 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
     e.preventDefault();
     if (!isValid) {
       if (!isSessionActive) {
-        alert("De sessie is momenteel niet actief. Wacht tot de administrator de Idea Tank opent.");
+        setAlertState({
+          open: true,
+          title: 'Sessie Niet Actief',
+          message: 'De sessie is momenteel niet actief. Wacht tot de administrator de Idea Tank opent.'
+        });
       }
       return;
     }
@@ -61,7 +65,11 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
     setIsSubmitting(true);
     
     if (!db) {
-      alert("Firebase is niet geconfigureerd. Controleer de .env instellingen.");
+      setAlertState({
+        open: true,
+        title: 'Configuratie Fout',
+        message: 'Firebase is niet geconfigureerd. Controleer de .env instellingen.'
+      });
       setIsSubmitting(false);
       return;
     }
