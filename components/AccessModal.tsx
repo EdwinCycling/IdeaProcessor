@@ -12,6 +12,9 @@ interface AccessModalProps {
 const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode, initialCode = '' }) => {
   const [code, setCode] = useState(initialCode);
   const [error, setError] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -21,15 +24,44 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
     }
   }, []);
 
-  const isValid = code.length >= 3;
+  // Timer effect for countdown
+  useEffect(() => {
+    if (!blockedUntil) return;
+
+    const interval = setInterval(() => {
+      const remaining = Math.ceil((blockedUntil - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setBlockedUntil(null);
+        setAttempts(0);
+        setTimeRemaining(0);
+      } else {
+        setTimeRemaining(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [blockedUntil]);
+
+  const isValid = code.length >= 3 && !blockedUntil;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blockedUntil) return;
+
     if (code.toLowerCase() === requiredCode.toLowerCase()) {
       onSuccess();
     } else {
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
       setError(true);
-      setTimeout(() => setError(false), 2000);
+      
+      if (newAttempts >= 3) {
+        const blockTime = Date.now() + 30000; // 30 seconds block
+        setBlockedUntil(blockTime);
+        setTimeRemaining(30);
+      } else {
+        setTimeout(() => setError(false), 2000);
+      }
     }
   };
 
