@@ -292,8 +292,13 @@ app.post('/chat', async (req, res) => {
 });
 
 // Setup simple chat endpoint if needed later
-app.get('/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
     res.send('Exact Idea Processor API is running');
 });
+
+// Mount API Router
+app.use('/api', apiRouter);
+// Also mount on root for backwards compatibility or direct calls if needed
+app.use('/', apiRouter);
 
 export default app;

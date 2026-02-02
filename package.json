@@ -1,7 +1,7 @@
 {
   "name": "de-exact-idea-processor",
   "private": true,
-  "version": "1.260202.6",
+  "version": "1.260202.7",
   "type": "module",
   "scripts": {
     "dev": "vite",
