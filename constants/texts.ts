@@ -1,10 +1,12 @@
 
+import pkg from '../package.json';
+
 export const TEXTS = {
   APP_NAME: {
     PREFIX: "=",
     MAIN: "Exact",
     SUFFIX: "Idea Processor",
-    VERSION: "v 1.260202.11",
+    VERSION: `v ${pkg.version}`,
   },
   NAV: {
     ADMIN_LOGIN: "Admin Login",

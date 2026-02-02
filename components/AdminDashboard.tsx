@@ -626,23 +626,80 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     doc.addPage();
     yPos = 20;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("Product Backlog Items:", margin, yPos);
-    yPos += 10;
+    doc.setFontSize(16);
+    doc.text("Product Backlog Items (PBI's)", margin, yPos);
+    yPos += 12;
     
-    doc.setFontSize(11);
-    ideaDetails.pbis.forEach((pbi) => {
-        if (yPos > 260) {
+    doc.setFontSize(10);
+    ideaDetails.pbis.forEach((pbi, index) => {
+        if (yPos > 240) {
             doc.addPage();
             yPos = 20;
         }
+
+        // PBI Header: [ID] Title
         doc.setFont("helvetica", "bold");
-        doc.text(`[${pbi.storyPoints} PTS] ${pbi.title}`, margin, yPos);
+        doc.setFontSize(12);
+        const pbiId = pbi.id || `PBI-${index + 1}`;
+        doc.text(`${pbiId}: ${pbi.title}`, margin, yPos);
+        yPos += 6;
+
+        // Priority & Story Points
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100);
+        doc.text(`Prioriteit: ${pbi.priority || 'Medium'} | Story Points: ${pbi.storyPoints}`, margin, yPos);
+        yPos += 6;
+        doc.setTextColor(0);
+
+        // User Story
+        doc.setFont("helvetica", "bold");
+        doc.text("User Story:", margin, yPos);
         yPos += 5;
         doc.setFont("helvetica", "normal");
-        const descLines = doc.splitTextToSize(pbi.description, 170);
-        doc.text(descLines, margin, yPos);
-        yPos += descLines.length * 6 + 5;
+        const storyText = pbi.userStory || pbi.description;
+        const storyLines = doc.splitTextToSize(storyText, 170);
+        doc.text(storyLines, margin, yPos);
+        yPos += storyLines.length * 5 + 5;
+
+        // Acceptance Criteria
+        if (pbi.acceptanceCriteria && pbi.acceptanceCriteria.length > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.text("Acceptatiecriteria:", margin, yPos);
+            yPos += 5;
+            doc.setFont("helvetica", "normal");
+            pbi.acceptanceCriteria.forEach(ac => {
+                if (yPos > 275) { doc.addPage(); yPos = 20; }
+                const acLines = doc.splitTextToSize(`- ${ac}`, 165);
+                doc.text(acLines, margin + 5, yPos);
+                yPos += acLines.length * 5;
+            });
+            yPos += 5;
+        }
+
+        // Business Value
+        if (pbi.businessValue) {
+            doc.setFont("helvetica", "bold");
+            doc.text("Business Value:", margin, yPos);
+            yPos += 5;
+            doc.setFont("helvetica", "normal");
+            const bvLines = doc.splitTextToSize(pbi.businessValue, 170);
+            doc.text(bvLines, margin, yPos);
+            yPos += bvLines.length * 5 + 5;
+        }
+
+        // Dependencies
+        if (pbi.dependencies && pbi.dependencies.length > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.text(`Dependencies: ${pbi.dependencies.join(', ')}`, margin, yPos);
+            yPos += 7;
+        }
+
+        // Separator line
+        doc.setDrawColor(230);
+        doc.line(margin, yPos, 190, yPos);
+        yPos += 10;
+        doc.setDrawColor(0);
     });
 
     // --- APPENDIX PAGE: ALL IDEAS ---

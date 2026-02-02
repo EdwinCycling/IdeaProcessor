@@ -15,8 +15,13 @@ const Navbar: React.FC<NavbarProps> = ({ onAdminLogin }) => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <span className="font-sans font-black text-2xl tracking-tighter">
-                <span className="text-exact-red text-3xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-400 font-light">{TEXTS.APP_NAME.SUFFIX}</span>
+              <span className="font-sans font-black text-2xl tracking-tighter group flex items-baseline">
+                <span className="text-exact-red text-3xl">{TEXTS.APP_NAME.PREFIX}</span> 
+                <span className="ml-1">{TEXTS.APP_NAME.MAIN}</span> 
+                <span className="text-gray-400 font-light ml-1">{TEXTS.APP_NAME.SUFFIX}</span>
+                <span className="ml-2 text-[10px] font-mono text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {TEXTS.APP_NAME.VERSION}
+                </span>
               </span>
             </div>
           </div>
