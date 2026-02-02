@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>De Exact Idea Processor</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              exact: {
+                red: '#E10000', // Approximate Exact Red
+                dark: '#0A0A0A',
+                panel: '#161616',
+              },
+              neon: {
+                cyan: '#00f3ff',
+                purple: '#bc13fe',
+                green: '#0aff0a',
+              }
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 6s ease-in-out infinite',
+              'firework': 'firework 2s infinite',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-20px)' },
+              },
+              firework: {
+                '0%': { transform: 'translate(var(--x), var(--initialY))', width: 'var(--initialSize)', opacity: '1' },
+                '50%': { width: '0.5vmin', opacity: '1' },
+                '100%': { width: 'var(--finalSize)', opacity: '0' }
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #050505;
+        color: #ffffff;
+      }
+      .neon-glow {
+        box-shadow: 0 0 20px rgba(225, 0, 0, 0.3);
+      }
+      .neon-text-glow {
+        text-shadow: 0 0 10px rgba(225, 0, 0, 0.5);
+      }
+      .grid-bg {
+        background-size: 50px 50px;
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      }
+      
+      /* Fireworks implementation */
+      .firework {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 0.5vmin;
+        aspect-ratio: 1;
+        background:
+          radial-gradient(circle, #ff0 0.2vmin, #0000 0) 50% 00%,
+          radial-gradient(circle, #ff0 0.3vmin, #0000 0) 00% 50%,
+          radial-gradient(circle, #ff0 0.5vmin, #0000 0) 50% 99%,
+          radial-gradient(circle, #ff0 0.2vmin, #0000 0) 99% 50%,
+          radial-gradient(circle, #ff0 0.3vmin, #0000 0) 80% 90%,
+          radial-gradient(circle, #ff0 0.5vmin, #0000 0) 95% 90%,
+          radial-gradient(circle, #ff0 0.5vmin, #0000 0) 10% 60%,
+          radial-gradient(circle, #ff0 0.2vmin, #0000 0) 31% 80%,
+          radial-gradient(circle, #ff0 0.3vmin, #0000 0) 80% 10%,
+          radial-gradient(circle, #ff0 0.2vmin, #0000 0) 90% 23%,
+          radial-gradient(circle, #ff0 0.3vmin, #0000 0) 45% 20%,
+          radial-gradient(circle, #ff0 0.5vmin, #0000 0) 13% 24%;
+        background-size: 0.5vmin 0.5vmin;
+        background-repeat: no-repeat;
+        animation: firework 2s infinite;
+      }
+
+      .firework::before,
+      .firework::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 0.5vmin;
+        aspect-ratio: 1;
+        background-size: 0.5vmin 0.5vmin;
+        background-repeat: no-repeat;
+        animation: firework 2s infinite;
+      }
+
+      .firework::before {
+        transform: translate(-50%, -50%) rotate(25deg) !important; 
+      }
+      .firework::after {
+        transform: translate(-50%, -50%) rotate(-37deg) !important;
+      }
+      
+      @keyframes firework {
+        0% { transform: translate(-50%, -50%); width: 0.5vmin; opacity: 1; }
+        50% { width: 30vmin; opacity: 1; }
+        100% { width: 45vmin; opacity: 0; }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "jspdf": "https://esm.sh/jspdf@2.5.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

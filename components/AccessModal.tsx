@@ -1,0 +1,97 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Lock, X, ArrowRight } from 'lucide-react';
+import { TEXTS } from '../constants/texts';
+
+interface AccessModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+  requiredCode: string;
+}
+
+const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode }) => {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Force focus when component mounts
+    if (inputRef.current) {
+        inputRef.current.focus();
+    }
+  }, []);
+
+  const isValid = code.length >= 3;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (code.toLowerCase() === requiredCode.toLowerCase()) {
+      onSuccess();
+    } else {
+      setError(true);
+      setTimeout(() => setError(false), 2000);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+        >
+          <X size={24} />
+        </button>
+
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+            <Lock className="w-8 h-8 text-exact-red" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.TITLE}</h2>
+          <p className="text-gray-400 text-sm">
+            {TEXTS.MODALS.ACCESS.DESC}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setError(false);
+              }}
+              placeholder={TEXTS.MODALS.ACCESS.PLACEHOLDER}
+              className={`w-full bg-black/50 border ${error ? 'border-exact-red animate-pulse' : 'border-white/20'} rounded-sm px-4 py-4 text-center text-2xl tracking-widest font-mono text-white focus:outline-none focus:border-exact-red transition-all placeholder:text-gray-700 uppercase`}
+            />
+            {error && <p className="text-exact-red text-xs text-center mt-2">{TEXTS.MODALS.ACCESS.ERROR}</p>}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3 bg-transparent border border-white/10 text-gray-400 font-medium rounded-sm hover:text-white hover:border-white/30 transition-all"
+            >
+              {TEXTS.MODALS.ACCESS.CANCEL}
+            </button>
+            <button
+              type="submit"
+              disabled={!isValid}
+              className={`flex-1 px-4 py-3 font-bold rounded-sm transition-all flex items-center justify-center ${
+                isValid 
+                  ? 'bg-exact-red text-white hover:bg-red-700 shadow-[0_0_15px_rgba(225,0,0,0.3)]' 
+                  : 'bg-white/10 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {TEXTS.MODALS.ACCESS.SUBMIT} <ArrowRight className="ml-2 w-4 h-4" />
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AccessModal;

@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated (Admin)
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Session document:
+    // - Read: Public (needed to check if session is active and get context)
+    // - Write: Admin only
+    match /sessions/{sessionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      // Ideas collection within a session:
+      // - Read: Admin only (Public shouldn't see other ideas)
+      // - Create: Public (but with validation)
+      // - Update/Delete: Admin only
+      match /ideas/{ideaId} {
+        allow read: if isAdmin();
+        allow create: if 
+          // Must have required fields
+          request.resource.data.keys().hasAll(['name', 'content', 'timestamp']) &&
+          // Name must be string and max 50 chars
+          request.resource.data.name is string &&
+          request.resource.data.name.size() <= 50 &&
+          // Content must be string and max 500 chars
+          request.resource.data.content is string &&
+          request.resource.data.content.size() <= 500 &&
+          // Timestamp must be a number
+          request.resource.data.timestamp is number;
+        
+        allow update, delete: if isAdmin();
+      }
+
+      // Reports collection (PDFs):
+      // - Read/Write: Admin only
+      match /reports/{reportId} {
+        allow read, write: if isAdmin();
+      }
+    }
+  }
+}
