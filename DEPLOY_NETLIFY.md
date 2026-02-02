@@ -62,12 +62,12 @@ Ga in Netlify naar **Site configuration > Environment variables** en voeg deze t
 
 | Key | Waarde (Voorbeeld) |
 | :--- | :--- |
-| `VITE_FIREBASE_API_KEY` | `AIzaSyBQ5...` |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `ideaprocessor.firebaseapp.com` |
-| `VITE_FIREBASE_PROJECT_ID` | `ideaprocessor` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | `ideaprocessor.firebasestorage.app` |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `304573327347` |
-| `VITE_FIREBASE_APP_ID` | `1:304573327347:web:...` |
+| `VITE_FIREBASE_API_KEY` | `JOUW_API_KEY` |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `jouw-project.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | `jouw-project-id` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | `jouw-project.firebasestorage.app` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `123456789` |
+| `VITE_FIREBASE_APP_ID` | `1:123456789:web:abcdef` |
 
 *(Let op: De `GEMINI_API_KEY` hoeft hier NIET bij! Die staat veilig in de backend.)*
 
