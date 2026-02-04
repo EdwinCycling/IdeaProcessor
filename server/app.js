@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-// import { GoogleGenAI } from '@google/genai'; // Gemini deprecated
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
 
 dotenv.config();
@@ -10,8 +11,21 @@ const app = express();
 const apiRouter = express.Router();
 
 // Middleware
-app.use(cors()); // Allow all origins for now (or configure specific)
-app.use(express.json());
+app.use(helmet()); // Security headers
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '1mb' })); // Limit body size
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { error: "Too many requests, please try again later." }
+});
+app.use('/api/', limiter);
 
 // Initialize Cerebras
 const apiKey = process.env.CEREBRAS_API_KEY;
@@ -20,7 +34,36 @@ const client = new Cerebras({
     apiKey: apiKey,
 });
 
-const CEREBRAS_MODEL = "llama-3.3-70b";
+const CEREBRAS_MODEL = process.env.CEREBRAS_MODEL || "llama-3.3-70b";
+const CEREBRAS_MODEL_FALLBACK = process.env.CEREBRAS_MODEL_FALLBACK;
+
+// Helper wrapper for AI calls with fallback logic
+const callAI = async (options) => {
+    // Remove model from options if present to avoid conflict, we control it here
+    const { model, ...params } = options; 
+    
+    try {
+        // console.log(`[AI] Attempting with primary model: ${CEREBRAS_MODEL}`);
+        return await client.chat.completions.create({
+            ...params,
+            model: CEREBRAS_MODEL
+        });
+    } catch (error) {
+        if (CEREBRAS_MODEL_FALLBACK) {
+            console.warn(`[AI] Primary model (${CEREBRAS_MODEL}) failed. Retrying with fallback: ${CEREBRAS_MODEL_FALLBACK}. Error: ${error.message}`);
+            try {
+                return await client.chat.completions.create({
+                    ...params,
+                    model: CEREBRAS_MODEL_FALLBACK
+                });
+            } catch (fallbackError) {
+                console.error(`[AI] Fallback model (${CEREBRAS_MODEL_FALLBACK}) also failed.`);
+                throw fallbackError; 
+            }
+        }
+        throw error;
+    }
+};
 
 // Helper to sanitize input
 const sanitizeInput = (text) => {
@@ -32,8 +75,28 @@ const sanitizeInput = (text) => {
     .trim();
 };
 
+// Helper to extract JSON from text (in case model adds preamble)
+const extractJSON = (text) => {
+    try {
+        // Try direct parse
+        return JSON.parse(text);
+    } catch (e) {
+        // Look for JSON block
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) {
+            try {
+                return JSON.parse(match[0]);
+            } catch (innerError) {
+                console.error("Failed to parse extracted JSON:", innerError);
+                throw innerError;
+            }
+        }
+        throw e;
+    }
+};
+
 // Routes
-apiRouter.post('/analyze', async (req, res) => {
+apiRouter.post('/analyze', async (req, res, next) => {
     if (!apiKey) {
         return res.status(500).json({ error: "Server Error: API Key not configured" });
     }
@@ -86,12 +149,11 @@ apiRouter.post('/analyze', async (req, res) => {
         `;
 
         try {
-            const completion = await client.chat.completions.create({
+            const completion = await callAI({
                 messages: [
                     { role: "system", content: "You are a JSON generator. Always output valid JSON inside a code block or purely raw JSON." },
                     { role: "user", content: prompt }
                 ],
-                model: CEREBRAS_MODEL,
                 temperature: 0.2, // Low temperature for consistent JSON
             });
 
@@ -103,7 +165,7 @@ apiRouter.post('/analyze', async (req, res) => {
             }
             responseText = responseText.trim();
 
-            const result = JSON.parse(responseText || "{}");
+            const result = extractJSON(responseText);
             const topIdeas = ideas.filter(idea => result.topIdeaIds?.includes(idea.id));
 
             res.json({
@@ -114,21 +176,17 @@ apiRouter.post('/analyze', async (req, res) => {
                 keywords: result.keywords || []
             });
         } catch (parseError) {
-             // if (parseError instanceof OpenAI.APIError) {
-             //    throw parseError;
-             // }
              console.error("JSON Parsing Error from Cerebras:", parseError);
-             // Fallback if JSON fails but we have text? Or just error out.
              throw parseError; 
         }
 
     } catch (error) {
         console.error("Analysis Error:", error);
-        res.status(500).json({ error: "Analysis failed", details: error.message });
+        next(error);
     }
 });
 
-apiRouter.post('/generate-details', async (req, res) => {
+apiRouter.post('/generate-details', async (req, res, next) => {
     // if (!client) {
     //    return res.status(500).json({ error: "Server Error: API Key not configured" });
     // }
@@ -218,12 +276,11 @@ apiRouter.post('/generate-details', async (req, res) => {
         `;
 
         try {
-            const completion = await client.chat.completions.create({
+            const completion = await callAI({
                 messages: [
                     { role: "system", content: "You are a JSON generator. Always output valid JSON inside a code block or purely raw JSON." },
                     { role: "user", content: prompt }
                 ],
-                model: CEREBRAS_MODEL,
                 temperature: 0.2,
                 max_tokens: 8192, // Ensure enough tokens for long blog/press release
             });
@@ -235,21 +292,21 @@ apiRouter.post('/generate-details', async (req, res) => {
             }
             responseText = responseText.trim();
 
-            const result = JSON.parse(responseText || "{}");
+            const result = extractJSON(responseText);
             res.json(result);
 
         } catch (parseError) {
              console.error("Detail Generation JSON Error:", parseError);
-             res.status(500).json({ error: "JSON parsing failed", details: parseError.message });
+             next(parseError);
         }
 
     } catch (error) {
         console.error("Detail Generation Error:", error);
-        res.status(500).json({ error: "Detail generation failed", details: error.message });
+        next(error);
     }
 });
 
-apiRouter.post('/generate-blog', async (req, res) => {
+apiRouter.post('/generate-blog', async (req, res, next) => {
     const { context, idea, style } = req.body;
     if (!idea) return res.status(400).json({ error: "No idea provided" });
 
@@ -290,12 +347,11 @@ apiRouter.post('/generate-blog', async (req, res) => {
           }
         `;
 
-        const completion = await client.chat.completions.create({
+        const completion = await callAI({
             messages: [
                 { role: "system", content: "You are a JSON generator. Always output valid JSON." },
                 { role: "user", content: prompt }
             ],
-            model: CEREBRAS_MODEL,
             temperature: 0.7,
         });
 
@@ -303,14 +359,14 @@ apiRouter.post('/generate-blog', async (req, res) => {
         if (responseText.includes("```")) {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '');
         }
-        res.json(JSON.parse(responseText.trim()));
+        res.json(extractJSON(responseText.trim()));
     } catch (error) {
         console.error("Blog Generation Error:", error);
-        res.status(500).json({ error: "Blog generation failed" });
+        next(error);
     }
 });
 
-apiRouter.post('/generate-press-release', async (req, res) => {
+apiRouter.post('/generate-press-release', async (req, res, next) => {
     const { context, idea, style } = req.body;
     if (!idea) return res.status(400).json({ error: "No idea provided" });
 
@@ -354,12 +410,11 @@ apiRouter.post('/generate-press-release', async (req, res) => {
           }
         `;
 
-        const completion = await client.chat.completions.create({
+        const completion = await callAI({
             messages: [
                 { role: "system", content: "You are a JSON generator. Always output valid JSON." },
                 { role: "user", content: prompt }
             ],
-            model: CEREBRAS_MODEL,
             temperature: 0.7,
         });
 
@@ -367,14 +422,14 @@ apiRouter.post('/generate-press-release', async (req, res) => {
         if (responseText.includes("```")) {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '');
         }
-        res.json(JSON.parse(responseText.trim()));
+        res.json(extractJSON(responseText.trim()));
     } catch (error) {
         console.error("Press Release Generation Error:", error);
-        res.status(500).json({ error: "Press release generation failed" });
+        next(error);
     }
 });
 
-apiRouter.post('/chat', async (req, res) => {
+apiRouter.post('/chat', async (req, res, next) => {
     const { history, currentRole, context, idea, analysis } = req.body;
 
     try {
@@ -419,23 +474,105 @@ apiRouter.post('/chat', async (req, res) => {
           content: msg.content
         }));
 
-        const completion = await client.chat.completions.create({
+        const completion = await callAI({
             messages: [
                 { role: "system", content: systemPrompt + "\n\nBELANGRIJK: Eindig je antwoord ALTIJD met een suggestie voor een vervolgvraag in dit exacte formaat:\n[FOLLOW_UP: \"Hier je vervolgvraag\"]" },
                 ...chatHistory
-            ],
-            model: CEREBRAS_MODEL
+            ]
         });
 
         res.json({ text: completion.choices[0].message.content || "" });
 
     } catch (error) {
         console.error("Chat Error:", error);
-        res.status(500).json({ error: "Chat failed", details: error.message });
+        next(error);
     }
 });
 
-apiRouter.post('/generate-follow-up-question', async (req, res) => {
+apiRouter.post('/cluster-ideas', async (req, res, next) => {
+    const { context, ideas } = req.body;
+
+    console.log(`[CLUSTER-DEBUG] Received request to cluster ${ideas?.length || 0} ideas.`);
+
+    if (!ideas || !Array.isArray(ideas) || ideas.length === 0) {
+        console.warn("[CLUSTER-DEBUG] No ideas provided for clustering.");
+        return res.status(400).json({ error: "No ideas provided" });
+    }
+
+    try {
+        console.log(`[CLUSTER-DEBUG] Processing context length: ${context?.length || 0}`);
+        
+        const cleanContext = sanitizeInput(context || "");
+        const ideasText = ideas.map(i => 
+          `<idea id="${i.id}" author="${sanitizeInput(i.name)}">${sanitizeInput(i.content)}</idea>`
+        ).join('\n');
+
+        const prompt = `
+          <system_instruction>
+          You are an expert innovation consultant.
+          Your task is to CLUSTER similar ideas together into broader concepts.
+          
+          <input_data>
+          CONTEXT: ${cleanContext}
+          IDEAS:
+          ${ideasText}
+          </input_data>
+          
+          <task>
+          1. Analyze all ideas and identify common themes or duplicates.
+          2. Group related ideas into "Clusters".
+          3. For each cluster:
+             - Give it a name like "Cluster idee #1", "Cluster idee #2", etc.
+             - Write a STRONG SUMMARY (in Dutch) that combines the best parts of the original ideas.
+             - List the original idea IDs that belong to this cluster.
+          4. If an idea is unique and doesn't fit with others, it can be a cluster of 1, but prefer grouping if possible.
+          5. Create at least 3 clusters if possible.
+          </task>
+          
+          Output JSON format:
+          {
+            "clusters": [
+              {
+                "id": "cluster-1", 
+                "name": "Cluster idee #1",
+                "summary": "Combined summary text...",
+                "originalIdeaIds": ["id1", "id2"]
+              }
+            ]
+          }
+          </system_instruction>
+        `;
+
+        console.log("[CLUSTER-DEBUG] Sending prompt to Cerebras...");
+
+        const completion = await callAI({
+            messages: [
+                { role: "system", content: "You are a JSON generator. Always output valid JSON." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.3,
+        });
+
+        let responseText = completion.choices[0].message.content;
+        console.log("[CLUSTER-DEBUG] Raw response from Cerebras:", responseText);
+        
+        if (responseText.includes("```")) {
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '');
+        }
+        responseText = responseText.trim();
+
+        const result = extractJSON(responseText);
+        console.log(`[CLUSTER-DEBUG] Successfully parsed ${result.clusters?.length || 0} clusters.`);
+        
+        res.json(result);
+
+    } catch (error) {
+        console.error("[CLUSTER-DEBUG] Clustering Error:", error);
+        next(error);
+    }
+});
+
+apiRouter.post('/generate-follow-up-question', async (req, res, next) => {
     const { context, idea, existingQuestions } = req.body;
     
     console.log("Generating follow-up question for:", idea?.name);
@@ -483,12 +620,11 @@ apiRouter.post('/generate-follow-up-question', async (req, res) => {
           Geef ALLEEN de nieuwe vraag terug als platte tekst. Geen inleiding, geen quotes.
         `;
 
-        const completion = await client.chat.completions.create({
+        const completion = await callAI({
             messages: [
                 { role: "system", content: "Je bent een creatieve tekstschrijver." },
                 { role: "user", content: prompt }
             ],
-            model: CEREBRAS_MODEL,
             temperature: 0.7,
         });
 
@@ -505,7 +641,7 @@ apiRouter.post('/generate-follow-up-question', async (req, res) => {
         console.error("Follow-up generation error:", error);
         // Fallback question if AI fails
         const fallbackQuestion = `Hoe kunnen we het idee "${idea.name}" verder uitbouwen voor maximale impact?`;
-        res.json({ question: fallbackQuestion, error: error.message });
+        res.json({ question: fallbackQuestion }); // Still return fallback but don't leak error message to user
     }
 });
 
@@ -516,5 +652,14 @@ apiRouter.get('/health', (req, res) => {
 
 // Mount API Router
 app.use('/api', apiRouter);
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error(`[SERVER ERROR] ${err.stack}`);
+    res.status(err.status || 500).json({
+        error: "Internal Server Error",
+        message: process.env.NODE_ENV === 'development' ? err.message : "Something went wrong on our end."
+    });
+});
 
 export default app;

@@ -2,7 +2,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { functions } from './firebase';
 import { httpsCallable } from 'firebase/functions';
-import { Idea, AIAnalysisResult, IdeaDetails } from '../types';
+import { Idea, AIAnalysisResult, IdeaDetails, Cluster } from '../types';
 
 // Helper to sanitize input to prevent basic injection attempts or control characters
 const sanitizeInput = (text: string): string => {
@@ -11,6 +11,26 @@ const sanitizeInput = (text: string): string => {
     .replace(/"/g, '\\"')   // Escape quotes
     .replace(/[\x00-\x1F\x7F-\x9F]/g, "") // Remove control characters
     .trim();
+};
+
+export const clusterIdeas = async (context: string, ideas: Idea[]): Promise<Cluster[]> => {
+  try {
+    const response = await fetch('/api/cluster-ideas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context, ideas })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.clusters || [];
+  } catch (error) {
+    console.error("Clustering failed:", error);
+    return [];
+  }
 };
 
 export const analyzeIdeas = async (context: string, ideas: Idea[]): Promise<AIAnalysisResult> => {

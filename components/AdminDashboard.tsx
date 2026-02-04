@@ -4,11 +4,12 @@ import { jsPDF } from 'jspdf';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
-import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage } from '../types';
-import { analyzeIdeas, generateIdeaDetails, generateBlog, generatePressRelease } from '../services/ai';
+import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage, Cluster } from '../types';
+import { analyzeIdeas, generateIdeaDetails, generateBlog, generatePressRelease, clusterIdeas } from '../services/ai';
 import ChatAssistant from './ChatAssistant';
 import ConfirmationModal from './ConfirmationModal';
 import IdeasOverviewModal from './IdeasOverviewModal';
+import ClusterIdeasModal from './ClusterIdeasModal';
 import RevealIdeaModal from './RevealIdeaModal';
 
 interface AdminDashboardProps {
@@ -37,6 +38,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const [animatedScore, setAnimatedScore] = useState(0);
   const [selectedManualIdeaId, setSelectedManualIdeaId] = useState<string | null>(null);
   const [showOverview, setShowOverview] = useState(false);
+  const [showClusterModal, setShowClusterModal] = useState(false);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [isClustering, setIsClustering] = useState(false);
 
   // Detail State
   const [ideaDetails, setIdeaDetails] = useState<IdeaDetails | null>(null);
@@ -334,6 +338,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       return () => clearTimeout(timeout);
     }
   }, [phase, analysis, animatedScore]);
+
+  const handleClusterIdeas = async () => {
+    setShowClusterModal(true);
+    if (clusters.length === 0) {
+        setIsClustering(true);
+        const result = await clusterIdeas(context, ideas);
+        setClusters(result);
+        setIsClustering(false);
+    }
+  };
+
+  const handleSelectCluster = async (cluster: Cluster) => {
+    // Create a new Idea from the cluster
+    const clusterIdea: Idea = {
+        id: cluster.id, // Use cluster ID
+        name: cluster.name, // "Cluster idee #1"
+        content: cluster.summary,
+        timestamp: Date.now()
+    };
+
+    // Treat it as a manual selection
+    handleManualSelectIdea(clusterIdea);
+    setShowClusterModal(false);
+  };
 
   const handleStartSession = async () => {
     if (!context.trim()) return;
@@ -643,6 +671,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         printBCItem("Viral Tweet:", ideaDetails.marketing.viralTweet);
     }
 
+    // --- PRESS RELEASE (Added) ---
+    if (ideaDetails.pressRelease) {
+        if (yPos > 220) { doc.addPage(); yPos = 20; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Persbericht", margin, yPos);
+        yPos += 10;
+        
+        // Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        const titleLines = doc.splitTextToSize(ideaDetails.pressRelease.title, 170);
+        doc.text(titleLines, margin, yPos);
+        yPos += titleLines.length * 5 + 5;
+
+        // Info
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.text(`${ideaDetails.pressRelease.location}, ${ideaDetails.pressRelease.date}`, margin, yPos);
+        yPos += 8;
+
+        // Content
+        doc.setFont("helvetica", "normal");
+        const contentLines = doc.splitTextToSize(ideaDetails.pressRelease.content, 170);
+        doc.text(contentLines, margin, yPos);
+        yPos += contentLines.length * 5 + 10;
+    }
+
+    // --- BLOG POST (Added) ---
+    if (ideaDetails.blogPost) {
+        if (yPos > 220) { doc.addPage(); yPos = 20; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Blog Post", margin, yPos);
+        yPos += 10;
+        
+        // Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        const titleLines = doc.splitTextToSize(ideaDetails.blogPost.title, 170);
+        doc.text(titleLines, margin, yPos);
+        yPos += titleLines.length * 5 + 5;
+
+        // Content
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        const contentLines = doc.splitTextToSize(ideaDetails.blogPost.content, 170);
+        doc.text(contentLines, margin, yPos);
+        yPos += contentLines.length * 5 + 10;
+    }
+
     // --- Q&A SIMULATION ---
     if (yPos > 240) { doc.addPage(); yPos = 20; }
     
@@ -889,16 +968,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const handleStressTest = async () => {
     if (!db) return;
     const stressIdeas = [
-      "AI-gestuurde robot voor in het magazijn",
-      "Duurzame verpakking van zeewier",
-      "Slimme bril voor orderpickers",
-      "Zelfrijdende bezorgbusjes voor de stad",
-      "Blockchain voor transparante supply chain",
-      "VR-training voor nieuwe medewerkers",
-      "IoT sensoren voor realtime voorraadbeheer",
-      "Automatische factuurverwerking met machine learning",
-      "Gepersonaliseerde marketing met AI",
-      "Predictive maintenance voor productiemachines"
+      // Cluster 1: Magazijn Automatisering
+      "We moeten robots inzetten voor het orderpicken in het magazijn.",
+      "Zelfrijdende karretjes die de orders naar de inpaktafel brengen.",
+      "Automatisering van het magazijn met robots die 's nachts doorwerken.",
+      "Gebruik drones voor voorraadtelling in de hoge stellingen.",
+      
+      // Cluster 2: Duurzaamheid
+      "Al onze verpakkingen moeten van gerecycled materiaal zijn.",
+      "Geen plastic meer gebruiken bij het verzenden van pakketjes.",
+      "Overstappen op elektrisch vervoer voor de bezorging van onze producten.",
+      "Zonnepanelen op het dak van het distributiecentrum leggen.",
+
+      // Cluster 3: Medewerker Welzijn
+      "Gratis fruit en gezonde lunch voor alle medewerkers.",
+      "Een sportruimte inrichten waar we in de pauze kunnen sporten."
     ];
 
     try {
@@ -1336,7 +1420,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Innovation Score Gauge */}
                         <div className="bg-exact-panel border border-white/10 rounded-lg p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-exact-red/30 transition-colors h-[280px]">
-                            <div className="absolute top-0 right-0 p-2 text-xs font-mono text-gray-600">AI_CALC_V1</div>
                             
                             <div className="flex-1 flex items-center justify-center">
                                 <div className="relative w-40 h-40 flex items-center justify-center">
@@ -1482,6 +1565,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     >
                       <List className="mr-2 w-5 h-5" />
                       Bekijk alle ideeën
+                    </button>
+                    <button 
+                      onClick={handleClusterIdeas}
+                      className="px-6 py-4 bg-white/10 text-white hover:bg-white/20 font-bold rounded flex items-center transition-all border border-white/10 ml-4"
+                    >
+                      <Sparkles className="mr-2 w-5 h-5 text-neon-purple" />
+                      Samenvoegen
                     </button>
                     <button 
                       onClick={handleSelectIdea}
@@ -2364,6 +2454,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             </div>
         </div>
       )}
+
+      {/* Cluster Ideas Modal */}
+      <ClusterIdeasModal
+        isOpen={showClusterModal}
+        onClose={() => setShowClusterModal(false)}
+        clusters={clusters}
+        ideas={ideas}
+        isClustering={isClustering}
+        onSelectCluster={handleSelectCluster}
+      />
 
       {/* Ideas Overview Modal */}
       <IdeasOverviewModal 

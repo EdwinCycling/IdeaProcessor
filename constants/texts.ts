@@ -6,7 +6,7 @@ export const TEXTS = {
     PREFIX: "=",
     MAIN: "Exact",
     SUFFIX: "Idea Processor",
-    VERSION: `v ${pkg.version}`,
+    VERSION: `v 1.260204.1`,
   },
   NAV: {
     ADMIN_LOGIN: "Admin Login",
@@ -15,7 +15,7 @@ export const TEXTS = {
     SETTINGS: "Instellingen",
   },
   HERO: {
-    BADGE: "VIBE CODED // SYSTEM ONLINE",
+    BADGE: "AI // DATABASE ONLINE",
     TITLE_PREFIX: "Verander je publiek in een",
     TITLE_HIGHLIGHT: "Think Tank",
     DESCRIPTION: "Verzamel ideeën, analyseer de vibe en genereer roadmaps. Live. In seconden. Powered by AI.",

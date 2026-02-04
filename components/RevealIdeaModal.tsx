@@ -80,7 +80,7 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
             </div>
 
             {/* Content Container */}
-            <div className="relative z-10 max-w-5xl w-full p-8 text-center max-h-[90vh] overflow-y-auto scrollbar-hide">
+            <div className="relative z-10 max-w-5xl w-full p-8 text-center max-h-[50vh] overflow-y-auto scrollbar-hide">
                 
                 {/* COUNTDOWN PHASE */}
                 {!showContent && (

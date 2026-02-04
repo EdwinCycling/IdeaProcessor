@@ -19,6 +19,13 @@ export interface Idea {
   timestamp: number;
 }
 
+export interface Cluster {
+  id: string;
+  name: string;
+  summary: string;
+  originalIdeaIds: string[];
+}
+
 export interface AIAnalysisResult {
   summary: string;
   topIdeas: Idea[];
