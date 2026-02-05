@@ -1701,21 +1701,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         {phase === 'LIVE' && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-h-full animate-in fade-in duration-500">
              {/* Left: QR Code */}
-             <div className="bg-black/40 border border-white/10 rounded-lg p-8 flex flex-col items-center justify-center relative overflow-hidden h-[500px] xl:h-full">
+             <div className="bg-black/40 border border-white/10 rounded-lg p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center relative overflow-hidden xl:h-full">
                 <div className="text-center">
-                    <div className="bg-white p-4 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-6 mx-auto inline-block">
+                    <div className="bg-white p-3 sm:p-4 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-4 sm:mb-6 mx-auto inline-block">
                         <img 
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://ideaprocessor.netlify.app/`)}`}
                             alt="Scan QR" 
-                            className="w-64 h-64 md:w-80 md:h-80 object-contain"
+                            className="w-44 h-44 sm:w-56 sm:h-56 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain"
                         />
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">{TEXTS.ADMIN_DASHBOARD.LIVE.SCAN_TITLE}</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{TEXTS.ADMIN_DASHBOARD.LIVE.SCAN_TITLE}</h2>
                     
-                    <div className="flex flex-col gap-2 mb-8 items-center">
+                    <div className="flex flex-col gap-2 mb-5 sm:mb-8 items-center">
                          <p className="text-gray-400 text-sm uppercase tracking-widest font-bold">Event Code</p>
                          {sessionCode ? (
-                            <p className="text-exact-red font-mono text-6xl font-black tracking-widest bg-white/10 px-8 py-4 rounded-lg border-2 border-neon-green/50 shadow-[0_0_30px_rgba(57,255,20,0.2)]">
+                            <p className="text-exact-red font-mono text-4xl sm:text-5xl md:text-6xl font-black tracking-widest bg-white/10 px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-lg border-2 border-neon-green/50 shadow-[0_0_30px_rgba(57,255,20,0.2)]">
                                 {sessionCode.toUpperCase()}
                             </p>
                          ) : (
