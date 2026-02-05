@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, X, ArrowRight, Loader } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
+import { Lock, X, ArrowRight, Loader, AlertCircle } from 'lucide-react';
+import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
 
@@ -15,17 +15,42 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
   const [code, setCode] = useState(initialCode);
   const [error, setError] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Force focus when component mounts
-    if (inputRef.current) {
+    const checkActiveSessions = async () => {
+      if (!db) return;
+      
+      setIsCheckingSession(true);
+      try {
+        const sessionsRef = collection(db, COLLECTIONS.SESSIONS);
+        const q = query(sessionsRef, where("isActive", "==", true), limit(1));
+        const querySnapshot = await getDocs(q);
+        
+        setHasActiveSession(!querySnapshot.empty);
+      } catch (err) {
+        console.error("Error checking active sessions:", err);
+        // Fallback to true to allow attempt if check fails
+        setHasActiveSession(true);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    checkActiveSessions();
+  }, []);
+
+  useEffect(() => {
+    // Force focus when component mounts and session check is done
+    if (!isCheckingSession && hasActiveSession && inputRef.current) {
         inputRef.current.focus();
     }
-  }, []);
+  }, [isCheckingSession, hasActiveSession]);
 
   // Timer effect for countdown
   useEffect(() => {
@@ -49,12 +74,23 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (blockedUntil || isChecking) return;
+    if (blockedUntil || isChecking || !hasActiveSession) return;
 
     setIsChecking(true);
     const trimmedCode = code.trim().toUpperCase();
 
     try {
+        // Re-check session activity on submit for extra security
+        const sessionsRef = collection(db!, COLLECTIONS.SESSIONS);
+        const q = query(sessionsRef, where("isActive", "==", true), limit(1));
+        const activeSnap = await getDocs(q);
+        
+        if (activeSnap.empty) {
+            setHasActiveSession(false);
+            setIsChecking(false);
+            return;
+        }
+
         let foundSessionId: string | null = null;
         
         // 1. Check Global Code (Legacy/Default)
@@ -108,6 +144,39 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
             setTimeout(() => setError(false), 2000);
         }
   };
+
+  if (isCheckingSession) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl flex flex-col items-center">
+          <Loader className="w-12 h-12 text-exact-red animate-spin mb-4" />
+          <p className="text-white font-medium">Sessie controleren...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasActiveSession === false) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative text-center">
+          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+            <AlertCircle className="w-8 h-8 text-exact-red" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
+          <p className="text-gray-400 mb-8">
+            {TEXTS.MODALS.ACCESS.NO_SESSION_DESC}
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-3 bg-exact-red text-white font-bold rounded-sm hover:bg-red-700 transition-all shadow-[0_0_15px_rgba(225,0,0,0.3)]"
+          >
+            {TEXTS.MODALS.ACCESS.CLOSE}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">

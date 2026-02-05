@@ -6,7 +6,7 @@ export const TEXTS = {
     PREFIX: "=",
     MAIN: "Exact",
     SUFFIX: "Idea Processor",
-    VERSION: `v 1.260205.2`,
+    VERSION: `v 1.260205.3`,
   },
   NAV: {
     ADMIN_LOGIN: "Admin Login",
@@ -71,7 +71,10 @@ export const TEXTS = {
       PLACEHOLDER: "Code...",
       ERROR: "Onjuiste code.",
       CANCEL: "Annuleren",
-      SUBMIT: "Doorgaan"
+      SUBMIT: "Doorgaan",
+      NO_SESSION_TITLE: "Geen actieve sessie",
+      NO_SESSION_DESC: "Er is op dit moment geen actieve Idea Tank sessie gestart. Probeer het later nog eens als de sessie is geopend.",
+      CLOSE: "Sluiten"
     },
     ADMIN: {
       TITLE: "Admin Login",
