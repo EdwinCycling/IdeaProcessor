@@ -6,7 +6,7 @@ export const TEXTS = {
     PREFIX: "=",
     MAIN: "Exact",
     SUFFIX: "Idea Processor",
-    VERSION: `v 1.260205.1`,
+    VERSION: `v 1.260205.2`,
   },
   NAV: {
     ADMIN_LOGIN: "Admin Login",
@@ -91,12 +91,8 @@ export const TEXTS = {
       BTN_SAVE: "Opslaan & Sluiten"
     },
     PRIVACY: {
-      TITLE: "Privacybeleid",
-      CONTENT: "Uw privacy is van het grootste belang voor ons. De gegevens die u deelt tijdens sessies worden uitsluitend gebruikt voor de directe functionaliteit van de Exact Idea Processor. Wij delen geen persoonsgegevens met derden."
-    },
-    TERMS: {
-      TITLE: "Algemene Voorwaarden",
-      CONTENT: "Door gebruik te maken van de applicatie gaat u akkoord met onze voorwaarden. Alle ingediende ideeën, concepten en data worden volledig en exclusief eigendom van Exact. Exact behoudt zich het onherroepelijke recht voor om deze informatie vrijelijk te gebruiken, te ontwikkelen, te wijzigen, te publiceren of te commercialiseren, op welke wijze dan ook, zonder enige verplichting tot compensatie, erkenning of notificatie aan de indiener. De indiener doet hierbij afstand van alle (intellectuele) eigendomsrechten met betrekking tot de ingediende content."
+      TITLE: "Privacy & AI Beleid",
+      CONTENT: "Uw privacy is belangrijk voor ons. De gegevens die u deelt worden gebruikt voor de functionaliteit van de Exact Idea Processor. Let op: alle analyses en uitkomsten worden gegenereerd door AI-modellen. De ingevoerde data kan door deze modellen worden gebruikt voor trainingsdoeleinden. Wij adviseren dringend om geen bedrijfsgevoelige, vertrouwelijke of persoonlijke gegevens in de ideeën op te nemen. Het gebruik van de applicatie en de invoer van data geschiedt volledig op eigen risico."
     },
     COOKIES: {
       TITLE: "Cookiebeleid",
@@ -105,6 +101,10 @@ export const TEXTS = {
         TEXT: "Wij gebruiken cookies om uw ervaring te verbeteren en de applicatie goed te laten werken.",
         BTN_ACCEPT: "Accepteren en Doorgaan"
       }
+    },
+    DISCLAIMER: {
+      TITLE: "Disclaimer",
+      CONTENT: "De Exact Idea Processor is een innovatie-tool ontwikkeld door het AI Innovation Lab. Gebruik van deze applicatie is op eigen risico. Exact is op geen enkele wijze aansprakelijk voor de resultaten, suggesties of plannen die door de AI worden gegenereerd. De output van de AI dient uitsluitend ter inspiratie en er kunnen geen rechten aan worden ontleend. Exact aanvaardt geen enkele aansprakelijkheid voor directe of indirecte schade die voortvloeit uit het gebruik van deze applicatie of de daaruit voortvloeiende concepten. Door gebruik te maken van deze app erkent u dat AI-modellen onnauwkeurigheden kunnen bevatten en dat u zelf verantwoordelijk bent voor de validatie van alle gegenereerde informatie."
     },
     CONTACT: {
       TITLE: "Contact",
@@ -189,7 +189,7 @@ export const TEXTS = {
     COPYRIGHT: "© 2026 Edwin - AI Innovation Lap CPO",
     LINKS: {
       PRIVACY: "Privacy",
-      TERMS: "Voorwaarden",
+      DISCLAIMER: "Disclaimer",
       COOKIES: "Cookies",
       CONTACT: "Contact"
     }

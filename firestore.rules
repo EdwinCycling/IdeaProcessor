@@ -30,6 +30,8 @@ service cloud.firestore {
       match /ideas/{ideaId} {
         allow read: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
         allow create: if 
+          // Session must be active
+          get(/databases/$(database)/documents/sessions/$(sessionId)).data.isActive == true &&
           // Must have required fields
           request.resource.data.keys().hasAll(['name', 'content', 'timestamp']) &&
           // Name must be string and max 50 chars

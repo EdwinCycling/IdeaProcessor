@@ -3,25 +3,25 @@ import { X } from 'lucide-react';
 import { TEXTS } from '../constants/texts';
 
 const Footer: React.FC = () => {
-  const [modalType, setModalType] = useState<'privacy' | 'terms' | 'cookies' | 'contact' | null>(null);
+  const [modalType, setModalType] = useState<'privacy' | 'cookies' | 'contact' | 'disclaimer' | null>(null);
 
   const renderModalContent = () => {
     switch (modalType) {
+      case 'disclaimer':
+        return (
+          <>
+            <h3 className="text-xl font-bold mb-4 text-white">{TEXTS.MODALS.DISCLAIMER.TITLE}</h3>
+            <p className="text-gray-300 leading-relaxed">
+              {TEXTS.MODALS.DISCLAIMER.CONTENT}
+            </p>
+          </>
+        );
       case 'privacy':
         return (
           <>
             <h3 className="text-xl font-bold mb-4 text-white">{TEXTS.MODALS.PRIVACY.TITLE}</h3>
-            <p className="text-gray-300">
+            <p className="text-gray-300 leading-relaxed">
               {TEXTS.MODALS.PRIVACY.CONTENT}
-            </p>
-          </>
-        );
-      case 'terms':
-        return (
-          <>
-            <h3 className="text-xl font-bold mb-4 text-white">{TEXTS.MODALS.TERMS.TITLE}</h3>
-            <p className="text-gray-300">
-              {TEXTS.MODALS.TERMS.CONTENT}
             </p>
           </>
         );
@@ -67,9 +67,9 @@ const Footer: React.FC = () => {
               </p>
             </div>
             
-            <div className="flex space-x-6 text-sm text-gray-400">
+            <div className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 text-sm text-gray-400">
               <button onClick={() => setModalType('privacy')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.PRIVACY}</button>
-              <button onClick={() => setModalType('terms')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.TERMS}</button>
+              <button onClick={() => setModalType('disclaimer')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.DISCLAIMER}</button>
               <button onClick={() => setModalType('cookies')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.COOKIES}</button>
               <button onClick={() => setModalType('contact')} className="hover:text-white transition-colors">{TEXTS.FOOTER.LINKS.CONTACT}</button>
             </div>

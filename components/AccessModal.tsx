@@ -54,32 +54,48 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
     setIsChecking(true);
     const trimmedCode = code.trim().toUpperCase();
 
-    // 1. Check Global Code (Legacy/Default)
-    if (trimmedCode === requiredCode.toUpperCase()) {
-      onSuccess(CURRENT_SESSION_ID);
-      return;
-    }
-
-    // 2. Check Session Codes in Firestore
-    let foundSessionId: string | null = null;
-    if (db) {
-        try {
+    try {
+        let foundSessionId: string | null = null;
+        
+        // 1. Check Global Code (Legacy/Default)
+        if (trimmedCode === requiredCode.toUpperCase()) {
+            foundSessionId = CURRENT_SESSION_ID;
+        } else if (db) {
+            // 2. Check Session Codes in Firestore
             const codeRef = doc(db, COLLECTIONS.SESSION_CODES, trimmedCode);
             const codeSnap = await getDoc(codeRef);
             
             if (codeSnap.exists()) {
                 foundSessionId = codeSnap.data().sessionId;
             }
-        } catch (err) {
-            console.error("Error checking session code:", err);
         }
+
+        if (foundSessionId && db) {
+            // Check if the session is actually active
+            const sessionRef = doc(db, COLLECTIONS.SESSIONS, foundSessionId);
+            const sessionSnap = await getDoc(sessionRef);
+            
+            if (sessionSnap.exists()) {
+                const sessionData = sessionSnap.data();
+                if (sessionData.isActive === true) {
+                    onSuccess(foundSessionId);
+                    return;
+                } else {
+                    // Session exists but is not active
+                    setError(true);
+                    setIsChecking(false);
+                    // Custom error message for closed session could be added here
+                    // For now, use the default error but maybe a more specific one
+                    return;
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error checking session code:", err);
     }
 
-    if (foundSessionId) {
-        onSuccess(foundSessionId);
-    } else {
-        // Invalid
-        setIsChecking(false);
+    // If we reach here, it's either invalid or not active
+    setIsChecking(false);
         const newAttempts = attempts + 1;
         setAttempts(newAttempts);
         setError(true);
@@ -91,7 +107,6 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
         } else {
             setTimeout(() => setError(false), 2000);
         }
-    }
   };
 
   return (
