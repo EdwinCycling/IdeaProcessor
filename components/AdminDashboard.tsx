@@ -13,6 +13,7 @@ import ConfirmationModal from './ConfirmationModal';
 import IdeasOverviewModal from './IdeasOverviewModal';
 import ClusterIdeasModal from './ClusterIdeasModal';
 import RevealIdeaModal from './RevealIdeaModal';
+import PowerPointViewerModal from './PowerPointViewerModal';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -119,6 +120,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const [chatWidth, setChatWidth] = useState(450);
   const [chatPastedText, setChatPastedText] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  
+  // PPT Editing State
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+  const [editingContentIndex, setEditingContentIndex] = useState<number | null>(null); // null means editing title, otherwise index of content paragraph
+  const [editValue, setEditValue] = useState('');
+  const [showPPTViewer, setShowPPTViewer] = useState(false);
 
   const handleCopyToChat = (text: string) => {
     setChatPastedText(`Ik wil graag dieper ingaan op dit punt: "${text}"`);
@@ -561,6 +568,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     setIsGeneratingPPT(false);
   };
 
+  const handleSaveSlideContent = () => {
+    if (!ideaDetails?.pptOutline || editingSlideIndex === null) return;
+
+    const newSlides = [...ideaDetails.pptOutline.slides];
+    const slide = { ...newSlides[editingSlideIndex] };
+
+    if (editingContentIndex === null) {
+        // Editing Title
+        slide.title = editValue;
+    } else {
+        // Editing Content Paragraph
+        const newContent = [...slide.content];
+        newContent[editingContentIndex] = editValue;
+        slide.content = newContent;
+    }
+
+    newSlides[editingSlideIndex] = slide;
+
+    setIdeaDetails({
+        ...ideaDetails,
+        pptOutline: {
+            ...ideaDetails.pptOutline,
+            slides: newSlides
+        }
+    });
+
+    // Reset editing state
+    setEditingSlideIndex(null);
+    setEditingContentIndex(null);
+    setEditValue('');
+  };
+
   const handleDownloadPPT = () => {
     if (!ideaDetails?.pptOutline || !selectedIdea) return;
 
@@ -666,7 +705,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             x: 1.7, y: 1.75, w: 0.5, h: 0.5, 
             fill: { color: 'CCCCCC' } 
         });
-        sLink.addText("Exact Life", { 
+        sLink.addText("Our Idea", { 
             x: 2.3, y: 1.75, w: 3, h: 0.3,
             fontSize: 12, bold: true, color: '000000', valign: 'top' 
         });
@@ -1471,7 +1510,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <>
                     <button 
                         onClick={handleStressTest}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-bold transition-all flex items-center shadow-[0_0_10px_rgba(22,163,74,0.3)] border border-green-500/50"
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold transition-all flex items-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-orange-500/50"
                         title="Voeg 10 test-ideeën toe"
                     >
                         <Zap className="w-3 h-3 mr-1" />
@@ -1500,7 +1539,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 flex flex-col overflow-hidden relative">
+      <main className="flex-1 p-6 flex flex-col overflow-y-auto relative">
         
         {/* PHASE 0: MENU (HUB) */}
         {phase === 'MENU' && (
@@ -1660,13 +1699,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
         {/* PHASE 2: LIVE */}
         {phase === 'LIVE' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-h-full animate-in fade-in duration-500">
              {/* Left: QR Code */}
-             <div className="bg-black/40 border border-white/10 rounded-lg p-8 flex flex-col items-center justify-center relative overflow-hidden h-full">
+             <div className="bg-black/40 border border-white/10 rounded-lg p-8 flex flex-col items-center justify-center relative overflow-hidden h-[500px] xl:h-full">
                 <div className="text-center">
                     <div className="bg-white p-4 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-6 mx-auto inline-block">
                         <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://ideaprocessor.netlify.app/?code=${sessionCode || ''}`)}`}
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://ideaprocessor.netlify.app/`)}`}
                             alt="Scan QR" 
                             className="w-64 h-64 md:w-80 md:h-80 object-contain"
                         />
@@ -1696,7 +1735,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
              </div>
 
              {/* Right: Stats & Logs */}
-             <div className="flex flex-col gap-6 h-full min-h-0">
+             <div className="flex flex-col gap-6 h-auto xl:h-full min-h-0">
                 <div className="grid grid-cols-2 gap-4 flex-shrink-0">
                     <div className="bg-exact-panel border border-white/10 p-6 rounded-lg">
                         <div className="flex items-center text-gray-400 mb-2">
@@ -1897,7 +1936,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                           onClick={handleStartReveal}
                           className={`
                               group relative overflow-hidden rounded-lg border border-dashed border-white/30 flex flex-col items-center justify-center text-center transition-all
-                              ${hasRevealed ? 'w-full md:w-1/3 bg-white/5 hover:bg-white/10 min-h-[200px]' : 'w-full bg-gradient-to-br from-white/5 to-white/10 hover:from-white/10 hover:to-white/20 min-h-[400px]'}
+                              ${hasRevealed ? 'w-full md:w-1/3 bg-white/5 hover:bg-white/10 min-h-[200px]' : 'w-full bg-gradient-to-br from-white/5 to-white/10 hover:from-white/10 hover:to-white/20 min-h-[200px] lg:min-h-[400px]'}
                           `}
                       >
                           <div className={`rounded-full mb-6 group-hover:scale-110 transition-transform ${hasRevealed ? 'p-3 bg-white/5' : 'p-6 bg-neon-cyan/20'}`}>
@@ -2501,8 +2540,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                     </h3>
                                     <div className="flex gap-4">
                                         <button 
+                                            onClick={() => setShowPPTViewer(true)}
+                                            className="px-6 py-2 bg-neon-green/10 hover:bg-neon-green/20 text-neon-green font-bold rounded flex items-center transition-all border border-neon-green/20"
+                                        >
+                                            <Play className="w-4 h-4 mr-2" />
+                                            Presenteer
+                                        </button>
+                                        <button 
                                             onClick={() => setIdeaDetails({...ideaDetails, pptOutline: undefined})}
                                             className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                                            title="Reset"
                                         >
                                             <RotateCcw className="w-5 h-5" />
                                         </button>
@@ -2520,20 +2567,79 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                     {ideaDetails.pptOutline.slides.map((slide, idx) => (
                                         <div key={idx} className="bg-white/5 border border-white/10 p-6 rounded-lg group hover:bg-white/10 transition-colors">
                                             <div className="flex justify-between items-start mb-4">
-                                                <h4 className="font-bold text-lg text-white flex items-center">
-                                                    <span className="bg-white/10 text-gray-400 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">
+                                                <div className="flex items-center w-full">
+                                                    <span className="bg-white/10 text-gray-400 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">
                                                         {idx + 1}
                                                     </span>
-                                                    {slide.title}
-                                                </h4>
+                                                    
+                                                    {/* Editable Title */}
+                                                    {editingSlideIndex === idx && editingContentIndex === null ? (
+                                                        <div className="flex-1 flex items-center">
+                                                            <input 
+                                                                type="text" 
+                                                                value={editValue}
+                                                                onChange={(e) => setEditValue(e.target.value)}
+                                                                className="flex-1 bg-black/50 border border-white/30 rounded px-2 py-1 text-lg font-bold text-white focus:outline-none focus:border-neon-green"
+                                                                autoFocus
+                                                            />
+                                                            <button onClick={handleSaveSlideContent} className="ml-2 p-1 text-neon-green hover:bg-white/10 rounded"><Check size={18} /></button>
+                                                            <button onClick={() => setEditingSlideIndex(null)} className="ml-1 p-1 text-red-500 hover:bg-white/10 rounded"><X size={18} /></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex-1 flex items-center group/title">
+                                                            <h4 className="font-bold text-lg text-white mr-2">{slide.title}</h4>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setEditingSlideIndex(idx);
+                                                                    setEditingContentIndex(null);
+                                                                    setEditValue(slide.title);
+                                                                }}
+                                                                className="opacity-0 group-hover/title:opacity-100 text-gray-500 hover:text-white transition-all"
+                                                            >
+                                                                <Edit3 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                             
                                             <div className="pl-11">
-                                                <ul className="list-disc list-outside text-gray-300 space-y-1 mb-4">
+                                                <div className="space-y-2 mb-4">
                                                     {slide.content?.map((point, i) => (
-                                                        <li key={i}>{point}</li>
+                                                        <div key={i} className="flex items-start group/item">
+                                                            <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></div>
+                                                            
+                                                            {editingSlideIndex === idx && editingContentIndex === i ? (
+                                                                <div className="flex-1 flex items-start">
+                                                                    <textarea 
+                                                                        value={editValue}
+                                                                        onChange={(e) => setEditValue(e.target.value)}
+                                                                        className="flex-1 bg-black/50 border border-white/30 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-neon-green min-h-[60px]"
+                                                                        autoFocus
+                                                                    />
+                                                                    <div className="flex flex-col ml-2">
+                                                                        <button onClick={handleSaveSlideContent} className="p-1 text-neon-green hover:bg-white/10 rounded mb-1"><Check size={16} /></button>
+                                                                        <button onClick={() => setEditingSlideIndex(null)} className="p-1 text-red-500 hover:bg-white/10 rounded"><X size={16} /></button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex-1 flex items-start">
+                                                                    <p className="text-gray-300">{point}</p>
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            setEditingSlideIndex(idx);
+                                                                            setEditingContentIndex(i);
+                                                                            setEditValue(point);
+                                                                        }}
+                                                                        className="opacity-0 group-hover/item:opacity-100 ml-2 text-gray-500 hover:text-white transition-all mt-1"
+                                                                    >
+                                                                        <Edit3 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     ))}
-                                                </ul>
+                                                </div>
                                                 
                                                 {slide.speakerNotes && (
                                                     <div className="bg-black/30 p-4 rounded text-sm text-gray-500 italic border-l-2 border-exact-red/50">
@@ -2922,6 +3028,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         ideas={ideas}
         isClustering={isClustering}
         onSelectCluster={handleSelectCluster}
+      />
+
+      {/* PPT Viewer Modal */}
+      <PowerPointViewerModal
+        isOpen={showPPTViewer}
+        onClose={() => setShowPPTViewer(false)}
+        ideaDetails={ideaDetails}
+        ideaName={selectedIdea?.name || ''}
       />
 
       {/* Ideas Overview Modal */}

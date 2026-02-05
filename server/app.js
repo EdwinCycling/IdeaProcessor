@@ -240,6 +240,7 @@ apiRouter.post('/generate-details', async (req, res, next) => {
           6. businessCase: A McKinsey-style breakdown (Problem, Solution, Strategic Fit, Financial Impact, Risks).
           7. devilsAdvocate: A critical analysis (The Critique, Blind Spots, Pre-Mortem of failure).
           8. marketing: Creative outputs (Slogan, LinkedIn Post text, Viral Tweet text, Target Audience).
+             - linkedInPost: Een uitgebreid en professioneel bericht. Het moet langer zijn dan standaard, met een pakkende titel bovenaan en relevante hashtags onderaan.
           </task>
           
           Schema:
