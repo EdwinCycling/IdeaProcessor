@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, X, ArrowRight } from 'lucide-react';
+import { Lock, X, ArrowRight, Loader } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
 
 interface AccessModalProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (sessionId: string) => void;
   requiredCode: string;
   initialCode?: string;
 }
@@ -12,6 +14,7 @@ interface AccessModalProps {
 const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode, initialCode = '' }) => {
   const [code, setCode] = useState(initialCode);
   const [error, setError] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -42,26 +45,52 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
     return () => clearInterval(interval);
   }, [blockedUntil]);
 
-  const isValid = code.length >= 3 && !blockedUntil;
+  const isValid = code.length >= 3 && !blockedUntil && !isChecking;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (blockedUntil) return;
+    if (blockedUntil || isChecking) return;
 
-    if (code.toLowerCase() === requiredCode.toLowerCase()) {
-      onSuccess();
+    setIsChecking(true);
+    const trimmedCode = code.trim().toUpperCase();
+
+    // 1. Check Global Code (Legacy/Default)
+    if (trimmedCode === requiredCode.toUpperCase()) {
+      onSuccess(CURRENT_SESSION_ID);
+      return;
+    }
+
+    // 2. Check Session Codes in Firestore
+    let foundSessionId: string | null = null;
+    if (db) {
+        try {
+            const codeRef = doc(db, COLLECTIONS.SESSION_CODES, trimmedCode);
+            const codeSnap = await getDoc(codeRef);
+            
+            if (codeSnap.exists()) {
+                foundSessionId = codeSnap.data().sessionId;
+            }
+        } catch (err) {
+            console.error("Error checking session code:", err);
+        }
+    }
+
+    if (foundSessionId) {
+        onSuccess(foundSessionId);
     } else {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      setError(true);
-      
-      if (newAttempts >= 3) {
-        const blockTime = Date.now() + 30000; // 30 seconds block
-        setBlockedUntil(blockTime);
-        setTimeRemaining(30);
-      } else {
-        setTimeout(() => setError(false), 2000);
-      }
+        // Invalid
+        setIsChecking(false);
+        const newAttempts = attempts + 1;
+        setAttempts(newAttempts);
+        setError(true);
+        
+        if (newAttempts >= 3) {
+            const blockTime = Date.now() + 30000; // 30 seconds block
+            setBlockedUntil(blockTime);
+            setTimeRemaining(30);
+        } else {
+            setTimeout(() => setError(false), 2000);
+        }
     }
   };
 
@@ -122,7 +151,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
                   : 'bg-white/10 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {TEXTS.MODALS.ACCESS.SUBMIT} <ArrowRight className="ml-2 w-4 h-4" />
+              {isChecking ? <Loader className="animate-spin w-4 h-4" /> : <>{TEXTS.MODALS.ACCESS.SUBMIT} <ArrowRight className="ml-2 w-4 h-4" /></>}
             </button>
           </div>
         </form>

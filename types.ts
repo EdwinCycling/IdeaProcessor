@@ -97,3 +97,24 @@ export interface IdeaDetails {
     content: string; // The full 500-word blog post
   };
 }
+
+export interface SavedSession {
+  id: string;
+  timestamp: number;
+  question: string;
+  ideas: Idea[];
+  analysis?: AIAnalysisResult;
+  name: string; // User friendly name (e.g. date + question snippet)
+}
+
+export interface SessionCode {
+  code: string;
+  sessionId: string;
+  adminName?: string;
+  createdAt: number;
+}
+
+export interface UserSettings {
+  defaultContext?: string;
+  accessCode?: string;
+}

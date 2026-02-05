@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3, Sparkles } from 'lucide-react';
+import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3, Sparkles, FolderOpen } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
-import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
+import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc, where } from 'firebase/firestore';
+import { db, auth, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
-import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage, Cluster } from '../types';
+import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage, Cluster, SavedSession } from '../types';
 import { analyzeIdeas, generateIdeaDetails, generateBlog, generatePressRelease, clusterIdeas } from '../services/ai';
+import { generateSessionCode } from '../utils/codeGenerator';
 import ChatAssistant from './ChatAssistant';
 import ConfirmationModal from './ConfirmationModal';
 import IdeasOverviewModal from './IdeasOverviewModal';
@@ -24,8 +25,18 @@ type DetailTab = 'GENERAL' | 'QUESTIONS' | 'AI_ANSWERS' | 'BUSINESS_CASE' | 'DEV
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccessCode, onUpdateAccessCode }) => {
   const [phase, setPhase] = useState<DashboardPhase>('MENU');
   const [context, setContext] = useState('');
+  // Use User UID as Session ID if available, otherwise fallback (though Admin should always be logged in)
+  const [sessionId, setSessionId] = useState(auth?.currentUser?.uid || CURRENT_SESSION_ID);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   
+  // Saved Sessions State
+  const [showLoadSessionModal, setShowLoadSessionModal] = useState(false);
+  const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  
+  // Session Code State
+  const [sessionCode, setSessionCode] = useState<string>('');
+
   // Settings State
   const [showSettings, setShowSettings] = useState(false);
   const [tempAccessCode, setTempAccessCode] = useState(currentAccessCode);
@@ -119,7 +130,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const handleManualSelectIdea = async (idea: Idea) => {
     if (!db) return;
     try {
-      const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+      const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
       await updateDoc(sessionRef, {
         selectedManualIdeaId: idea.id
       });
@@ -166,7 +177,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             const fetchContext = async () => {
                 if (!db) return;
                 try {
-                    const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+                    const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
                     const sessionSnap = await getDoc(sessionRef);
                     if (sessionSnap.exists() && sessionSnap.data().defaultContext) {
                          setContext(sessionSnap.data().defaultContext);
@@ -179,20 +190,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             fetchContext();
         }
     }
-  }, [phase, defaultContext, context]);
+  }, [phase, defaultContext, context, sessionId]);
 
   // Load settings from Firestore on mount
   useEffect(() => {
     const loadSettings = async () => {
       if (!db) return;
       try {
-        const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+        const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
         const sessionSnap = await getDoc(sessionRef);
         if (sessionSnap.exists()) {
           const data = sessionSnap.data();
           if (data.accessCode) {
             onUpdateAccessCode(data.accessCode);
             setTempAccessCode(data.accessCode);
+            
+            // Also set this as sessionCode for UI consistency
+            setSessionCode(data.accessCode);
           }
           if (data.defaultContext) {
             setDefaultContext(data.defaultContext);
@@ -203,7 +217,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       }
     };
     loadSettings();
-  }, []);
+  }, [sessionId]);
 
   // Reports State
   const [showReports, setShowReports] = useState(false);
@@ -211,13 +225,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
   useEffect(() => {
     if (showReports && db) {
-        const q = query(collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, 'reports'), orderBy('generatedAt', 'desc'));
+        const q = query(collection(db, COLLECTIONS.SESSIONS, sessionId, 'reports'), orderBy('generatedAt', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setSavedReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
         return () => unsubscribe();
     }
-  }, [showReports]);
+  }, [showReports, sessionId]);
 
   // Phase 2: Live Data & Timer
   useEffect(() => {
@@ -232,7 +246,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       }
       // 1. Real-time Firestore Listener for Ideas
       const q = query(
-        collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS), 
+        collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS), 
         orderBy("timestamp", "asc")
       );
       
@@ -245,7 +259,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       });
 
       // 1b. Real-time Firestore Listener for Session (manual idea selection)
-      const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+      const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
       unsubscribeSession = onSnapshot(sessionRef, (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data();
@@ -283,7 +297,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
        
        // Close session for public
        if (db) {
-          setDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
+          setDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
             isActive: false,
             updatedAt: Date.now()
           }, { merge: true }).catch(err => console.error("Error closing session:", err));
@@ -499,7 +513,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
       // Also reset manual selection in Firestore
       if (db) {
-        updateDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
+        updateDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
           selectedManualIdeaId: null
         }).catch(err => console.error("Error resetting manual idea:", err));
       }
@@ -512,12 +526,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
   const handleSaveSettings = async () => {
       if (tempAccessCode.length >= 3) {
+        // 1. Check if the code is unique (if changed)
+        if (db && tempAccessCode.toUpperCase() !== currentAccessCode.toUpperCase()) {
+             const newCode = tempAccessCode.toUpperCase();
+             const codeRef = doc(db, COLLECTIONS.SESSION_CODES, newCode);
+             const codeSnap = await getDoc(codeRef);
+             
+             if (codeSnap.exists() && codeSnap.data().sessionId !== sessionId) {
+                 alert("Deze code is al in gebruik door een andere admin. Kies een andere.");
+                 return;
+             }
+
+             // 2. Register new code
+             await setDoc(codeRef, {
+                 sessionId: sessionId,
+                 createdAt: Date.now()
+             });
+
+             // 3. Remove old code if exists
+             if (currentAccessCode) {
+                 await deleteDoc(doc(db, COLLECTIONS.SESSION_CODES, currentAccessCode.toUpperCase()));
+             }
+        }
+
         onUpdateAccessCode(tempAccessCode);
+        setSessionCode(tempAccessCode);
         
         // Save to Firestore for persistence
         if (db) {
           try {
-            await setDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
+            await setDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
               accessCode: tempAccessCode,
               defaultContext: defaultContext,
               updatedAt: Date.now()
@@ -986,7 +1024,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     ];
 
     try {
-      const ideasRef = collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS);
+      const ideasRef = collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS);
       const promises = stressIdeas.map(content => {
         return addDoc(ideasRef, {
           name: `Test Gebruiker ${Math.floor(Math.random() * 1000)}`,
@@ -1044,10 +1082,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     setIsStartingFollowUp(true);
     
     try {
-        const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+        const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
         
         // 1. Clear all ideas from the current session
-        const ideasRef = collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS);
+        const ideasRef = collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS);
         const ideasSnapshot = await getDocs(ideasRef);
         const deletePromises = ideasSnapshot.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(deletePromises);
@@ -1082,6 +1120,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         setIsStartingFollowUp(false);
         console.error("Error starting follow-up session:", err);
     }
+  };
+
+  const handleSaveSession = async () => {
+    if (!db || !auth.currentUser) return;
+    
+    try {
+      const savedSession: SavedSession = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        question: context,
+        ideas: ideas,
+        analysis: analysis || undefined,
+        name: `${new Date().toLocaleDateString()} - ${context.substring(0, 30)}...`
+      };
+
+      await addDoc(collection(db, COLLECTIONS.USERS, auth.currentUser.uid, COLLECTIONS.SAVED_SESSIONS), savedSession);
+      alert("Sessie succesvol opgeslagen!");
+    } catch (error) {
+      console.error("Error saving session:", error);
+      alert("Er ging iets mis bij het opslaan van de sessie.");
+    }
+  };
+
+  const handleLoadSessionClick = async () => {
+     if (!db || !auth.currentUser) return;
+     try {
+         const q = query(collection(db, COLLECTIONS.USERS, auth.currentUser.uid, COLLECTIONS.SAVED_SESSIONS), orderBy('timestamp', 'desc'));
+         const querySnapshot = await getDocs(q);
+         const sessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SavedSession));
+         setSavedSessions(sessions);
+         setShowLoadSessionModal(true);
+     } catch (error) {
+         console.error("Error fetching saved sessions:", error);
+     }
+  };
+
+  const handleSelectSession = (session: SavedSession) => {
+      setContext(session.question);
+      setIdeas(session.ideas);
+      if (session.analysis) {
+          setAnalysis(session.analysis);
+      }
+      setIsReadOnly(true);
+      setShowLoadSessionModal(false);
+      setPhase('ANALYSIS');
   };
 
   const selectedIdea = analysis?.topIdeas.find(i => i.id === selectedIdeaId);
@@ -1122,6 +1205,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <span className="text-exact-red text-2xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-400 font-light">{TEXTS.APP_NAME.SUFFIX}</span>
                 <span className="text-gray-600 text-xs ml-2 font-mono">{TEXTS.APP_NAME.VERSION}</span>
               </span>
+             {sessionCode && (
+                <span className="flex items-center text-neon-green font-mono bg-neon-green/10 px-3 py-1 rounded border border-neon-green/20 ml-4 animate-in fade-in">
+                    <Hash size={14} className="mr-2" /> 
+                    EVENT CODE: <span className="font-bold ml-1 tracking-widest">{sessionCode.toUpperCase()}</span>
+                </span>
+             )}
              <span className={`px-2 py-0.5 rounded-full text-xs font-mono border ${phase === 'LIVE' ? 'border-neon-green text-neon-green' : 'border-gray-600 text-gray-500'}`}>
                 {phase === 'MENU' && 'DASHBOARD'}
                 {phase === 'SETUP' && 'SETUP'}
@@ -1309,6 +1398,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     </>
                   )}
                 </button>
+
+                <button 
+                  onClick={handleLoadSessionClick}
+                  className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 rounded-md flex items-center justify-center transition-all"
+                >
+                  <FolderOpen className="mr-2 w-5 h-5" />
+                  Laad Eerdere Sessie
+                </button>
               </div>
             </div>
           </div>
@@ -1322,17 +1419,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <div className="text-center">
                     <div className="bg-white p-4 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-6 mx-auto inline-block">
                         <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent('https://ideaprocessor.netlify.app/')}`}
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://ideaprocessor.netlify.app/?code=${sessionCode || ''}`)}`}
                             alt="Scan QR" 
                             className="w-64 h-64 md:w-80 md:h-80 object-contain"
                         />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">{TEXTS.ADMIN_DASHBOARD.LIVE.SCAN_TITLE}</h2>
-                    <p className="text-gray-400 font-mono text-xl mb-6">{TEXTS.ADMIN_DASHBOARD.LIVE.CODE_LABEL} <span className="text-exact-red font-bold">{currentAccessCode.toUpperCase()}</span></p>
+                    <h2 className="text-2xl font-bold mb-4">{TEXTS.ADMIN_DASHBOARD.LIVE.SCAN_TITLE}</h2>
                     
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-md mx-auto">
-                        <p className="text-gray-400 text-sm mb-1">OF ga in je web browser naar:</p>
-                        <p className="text-neon-cyan font-mono text-lg font-bold tracking-wide select-all">https://ideaprocessor.netlify.app/</p>
+                    <div className="flex flex-col gap-2 mb-8 items-center">
+                         <p className="text-gray-400 text-sm uppercase tracking-widest font-bold">Event Code</p>
+                         {sessionCode ? (
+                            <p className="text-exact-red font-mono text-6xl font-black tracking-widest bg-white/10 px-8 py-4 rounded-lg border-2 border-neon-green/50 shadow-[0_0_30px_rgba(57,255,20,0.2)]">
+                                {sessionCode.toUpperCase()}
+                            </p>
+                         ) : (
+                            <p className="text-gray-500 italic">Laden...</p>
+                         )}
+                         <p className="text-gray-500 font-mono text-xs mt-4">
+                            Deelnemers voeren deze code in om mee te doen.
+                         </p>
+                    </div>
+                    
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-md mx-auto w-full">
+                        <p className="text-gray-400 text-sm mb-1">Ga naar:</p>
+                        <p className="text-neon-cyan font-mono text-xl font-bold tracking-wide select-all">ideaprocessor.netlify.app</p>
+                        <p className="text-gray-500 text-xs mt-1">en voer de code in.</p>
                     </div>
                 </div>
              </div>
@@ -1409,9 +1520,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     <h2 className="text-3xl font-black text-white mb-1">{TEXTS.ADMIN_DASHBOARD.ANALYSIS.TITLE}</h2>
                     <p className="text-gray-400">Context: <span className="text-white italic">"{context}"</span></p>
                   </div>
-                  <div className="text-right">
-                     <span className="block text-3xl font-bold text-neon-cyan">{ideas.length}</span>
-                     <span className="text-xs text-gray-500 uppercase">{TEXTS.ADMIN_DASHBOARD.LIVE.IDEAS}</span>
+                  <div className="text-right flex items-center gap-4">
+                     <button
+                        onClick={handleSaveSession}
+                        className="flex items-center text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                     >
+                        <Save className="w-4 h-4 mr-2" />
+                        Opslaan
+                     </button>
+                     <div>
+                         <span className="block text-3xl font-bold text-neon-cyan">{ideas.length}</span>
+                         <span className="text-xs text-gray-500 uppercase">{TEXTS.ADMIN_DASHBOARD.LIVE.IDEAS}</span>
+                     </div>
                   </div>
                 </div>
 
@@ -2473,6 +2593,53 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         question={context}
         onSelectIdea={handleManualSelectIdea}
       />
+
+      {/* Load Session Modal */}
+      {showLoadSessionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowLoadSessionModal(false)}>
+            <div className="bg-exact-panel border border-white/20 rounded-lg max-w-4xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+                <button 
+                    onClick={() => setShowLoadSessionModal(false)}
+                    className="absolute top-6 right-6 text-gray-400 hover:text-white"
+                >
+                    <X size={24} />
+                </button>
+                
+                <h2 className="text-2xl font-bold text-white mb-6 flex items-center flex-shrink-0">
+                    <FolderOpen className="mr-3 text-exact-red" />
+                    Laad Eerdere Sessie
+                </h2>
+
+                <div className="overflow-y-auto flex-1 pr-2">
+                    {savedSessions.length === 0 ? (
+                        <div className="text-center text-gray-500 py-10">
+                            Geen opgeslagen sessies gevonden.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-4">
+                            {savedSessions.map((session) => (
+                                <button 
+                                    key={session.id} 
+                                    onClick={() => handleSelectSession(session)}
+                                    className="bg-white/5 border border-white/10 p-4 rounded hover:bg-white/10 transition-colors flex items-center justify-between group text-left w-full"
+                                >
+                                    <div>
+                                        <h4 className="font-bold text-white">{session.name || session.question}</h4>
+                                        <p className="text-sm text-gray-400 mt-1 line-clamp-1">{session.question}</p>
+                                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 font-mono">
+                                            <span>{new Date(session.timestamp).toLocaleString('nl-NL')}</span>
+                                            <span>{session.ideas.length} Ideeën</span>
+                                        </div>
+                                    </div>
+                                    <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -8,9 +8,10 @@ import ConfirmationModal from './ConfirmationModal';
 interface IdeaFormProps {
   onCancel: () => void;
   onSubmit: () => void;
+  sessionId: string;
 }
 
-const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
+const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) => {
   const [name, setName] = useState('');
   const [idea, setIdea] = useState('');
   const [sessionContext, setSessionContext] = useState('');
@@ -34,7 +35,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
 
     // Listen for session status changes
     if (db) {
-      const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
+      const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
       const unsubscribe = onSnapshot(sessionRef, (doc) => {
         if (doc.exists()) {
           const data = doc.data();
@@ -79,7 +80,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit }) => {
 
     try {
       // Write to Firestore
-      await addDoc(collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS), {
+      await addDoc(collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS), {
         name: name.trim(),
         content: idea.trim(),
         timestamp: Date.now()

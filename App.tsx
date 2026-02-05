@@ -25,6 +25,7 @@ const App: React.FC = () => {
   // Lifted State for Access Code (shared between Admin Dashboard and Access Modal)
   const [accessCode, setAccessCode] = useState(APP_CONFIG.ACCESS_CODE);
   const [scannedCode, setScannedCode] = useState('');
+  const [targetSessionId, setTargetSessionId] = useState(APP_CONFIG.CURRENT_SESSION_ID || 'exact-live-event');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,7 +42,8 @@ const App: React.FC = () => {
     setShowAccessModal(true);
   };
 
-  const handleAccessGranted = () => {
+  const handleAccessGranted = (sessionId: string) => {
+    setTargetSessionId(sessionId);
     setShowAccessModal(false);
     setCurrentView('IDEA_FORM');
   };
@@ -89,6 +91,7 @@ const App: React.FC = () => {
       <IdeaForm 
         onCancel={() => setCurrentView('LANDING')} 
         onSubmit={handleIdeaSubmitted} 
+        sessionId={targetSessionId}
       />
     );
   }

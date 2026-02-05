@@ -2,24 +2,33 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if user is authenticated (Admin)
-    function isAdmin() {
-      return request.auth != null;
+    // User specific data (Settings, Saved Sessions)
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Session Codes:
+    // - Read: Public (to lookup session)
+    // - Write: Authenticated users (to claim a code)
+    match /session_codes/{code} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
     // Session document:
     // - Read: Public (needed to check if session is active and get context)
-    // - Write: Admin only
+    // - Write: Owner only
     match /sessions/{sessionId} {
       allow read: if true;
-      allow write: if isAdmin();
+      // Allow write if user is owner (sessionId is their UID) OR if it's the legacy global session (for backward compat if needed by admin)
+      allow write: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
 
       // Ideas collection within a session:
-      // - Read: Admin only (Public shouldn't see other ideas)
+      // - Read: Owner only
       // - Create: Public (but with validation)
-      // - Update/Delete: Admin only
+      // - Update/Delete: Owner only
       match /ideas/{ideaId} {
-        allow read: if isAdmin();
+        allow read: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
         allow create: if 
           // Must have required fields
           request.resource.data.keys().hasAll(['name', 'content', 'timestamp']) &&
@@ -32,13 +41,13 @@ service cloud.firestore {
           // Timestamp must be a number
           request.resource.data.timestamp is number;
         
-        allow update, delete: if isAdmin();
+        allow update, delete: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
       }
 
       // Reports collection (PDFs):
-      // - Read/Write: Admin only
+      // - Read/Write: Owner only
       match /reports/{reportId} {
-        allow read, write: if isAdmin();
+        allow read, write: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
       }
     }
   }

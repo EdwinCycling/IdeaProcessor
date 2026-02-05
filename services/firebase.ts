@@ -39,8 +39,11 @@ export { db, auth, functions };
 // Collection References
 export const COLLECTIONS = {
   SESSIONS: 'sessions',
-  IDEAS: 'ideas'
+  IDEAS: 'ideas',
+  USERS: 'users',
+  SAVED_SESSIONS: 'saved_sessions',
+  SESSION_CODES: 'session_codes'
 };
 
-// Default Session ID for this event
+// Default Session ID for this event - Legacy/Default
 export const CURRENT_SESSION_ID = 'exact-live-event';
