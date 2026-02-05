@@ -32,7 +32,14 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
                 });
             }, 1000);
 
-            return () => clearInterval(timer);
+            // Lock scroll
+            const originalStyle = window.getComputedStyle(document.body).overflow;
+            document.body.style.overflow = 'hidden';
+
+            return () => {
+                clearInterval(timer);
+                document.body.style.overflow = originalStyle;
+            };
         }
     }, [isOpen]);
 

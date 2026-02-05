@@ -24,7 +24,11 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
 
   useEffect(() => {
     const checkActiveSessions = async () => {
-      if (!db) return;
+      if (!db) {
+        setHasActiveSession(false);
+        setIsCheckingSession(false);
+        return;
+      }
       
       setIsCheckingSession(true);
       try {
@@ -35,8 +39,8 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
         setHasActiveSession(!querySnapshot.empty);
       } catch (err) {
         console.error("Error checking active sessions:", err);
-        // Fallback to true to allow attempt if check fails
-        setHasActiveSession(true);
+        // Fallback to false to prevent unauthorized access if check fails
+        setHasActiveSession(false);
       } finally {
         setIsCheckingSession(false);
       }
@@ -69,6 +73,15 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
 
     return () => clearInterval(interval);
   }, [blockedUntil]);
+
+  // Lock scroll when modal is open
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   const isValid = code.length >= 3 && !blockedUntil && !isChecking;
 

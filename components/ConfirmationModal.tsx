@@ -30,12 +30,17 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     if (isOpen) {
       window.addEventListener('keydown', handleEscape);
       // Prevent body scroll
+      const originalStyle = window.getComputedStyle(document.body).overflow;
       document.body.style.overflow = 'hidden';
+      
+      return () => {
+        window.removeEventListener('keydown', handleEscape);
+        document.body.style.overflow = originalStyle;
+      };
     }
 
     return () => {
       window.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
 

@@ -96,6 +96,13 @@ export interface IdeaDetails {
     title: string;
     content: string; // The full 500-word blog post
   };
+  pptOutline?: {
+    slides: {
+      title: string;
+      content: string[];
+      speakerNotes: string;
+    }[];
+  };
 }
 
 export interface SavedSession {

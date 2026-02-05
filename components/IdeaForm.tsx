@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, Clock, AlertCircle } from 'lucide-react';
-import { collection, addDoc, doc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
 import ConfirmationModal from './ConfirmationModal';
@@ -79,6 +79,21 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
     }
 
     try {
+      // Security: Re-verify session is still active before writing
+      const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+      
+      if (!sessionSnap.exists() || sessionSnap.data().isActive !== true) {
+        setAlertState({
+          open: true,
+          title: 'Sessie Verlopen',
+          message: 'Deze sessie is zojuist gesloten door de administrator.'
+        });
+        setIsSessionActive(false);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Write to Firestore
       await addDoc(collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS), {
         name: name.trim(),
@@ -102,6 +117,28 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
       });
     }
   };
+
+  if (!isLoadingSession && !isSessionActive) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative text-center">
+          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+            <AlertCircle className="w-8 h-8 text-exact-red" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
+          <p className="text-gray-400 mb-8">
+            {TEXTS.MODALS.ACCESS.NO_SESSION_DESC}
+          </p>
+          <button
+            onClick={onCancel}
+            className="w-full px-4 py-3 bg-exact-red text-white font-bold rounded-sm hover:bg-red-700 transition-all shadow-[0_0_15px_rgba(225,0,0,0.3)]"
+          >
+            {TEXTS.MODALS.ACCESS.CLOSE}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-exact-dark flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden">
@@ -134,13 +171,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
            </div>
         )}
 
-        {/* Session Status Indicator - Only show if NOT active or loading */}
-        {!isLoadingSession && !isSessionActive && (
-          <div className="mb-4 p-3 rounded-lg border bg-exact-red/10 border-exact-red text-exact-red flex items-center flex-shrink-0 text-sm">
-            <AlertCircle className="w-4 h-4 mr-2" />
-            <span className="font-medium">Sessie nog niet actief - u kunt wel alvast uw naam invullen</span>
-          </div>
-        )}
+        {null}
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 space-y-4">
           <div className="flex-shrink-0">

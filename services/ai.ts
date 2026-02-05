@@ -143,6 +143,21 @@ export const generatePressRelease = async (context: string, idea: Idea, style: s
   }
 };
 
+export const generatePPTContent = async (context: string, idea: Idea): Promise<{ slides: { title: string; content: string[]; speakerNotes: string }[] }> => {
+  try {
+    const response = await fetch('/api/generate-ppt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context, idea })
+    });
+    if (!response.ok) throw new Error("PPT generation failed");
+    return await response.json();
+  } catch (error) {
+    console.error("PPT generation failed:", error);
+    return { slides: [] };
+  }
+};
+
 export const generateIdeaDetails = async (context: string, idea: Idea): Promise<IdeaDetails> => {
   // Use Backend API (Proxied to localhost:9998 or Netlify Function)
   try {

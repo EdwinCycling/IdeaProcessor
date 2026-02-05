@@ -28,6 +28,17 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
     setClusters(initialClusters);
   }, [initialClusters]);
 
+  // Lock scroll when modal is open
+  React.useEffect(() => {
+    if (isOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleStartEdit = (cluster: Cluster) => {
@@ -174,6 +185,20 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
                           )}
                       </div>
 
+                      {/* Action Button - Moved Up */}
+                      <div className="px-6 pb-4 bg-transparent">
+                          <button
+                            onClick={() => {
+                              onSelectCluster(cluster);
+                              onClose();
+                            }}
+                            className="w-full py-3 bg-neon-purple hover:bg-purple-600 text-white text-xs font-bold rounded flex items-center justify-center transition-all uppercase tracking-widest shadow-lg shadow-purple-900/20 group-hover:scale-[1.02]"
+                          >
+                            <Check className="w-4 h-4 mr-2" />
+                            Selecteer Concept
+                          </button>
+                      </div>
+
                       {/* Original Ideas Visuals */}
                       <div className="flex-1 bg-black/20 p-4 border-t border-white/5">
                           <h5 className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-3 flex items-center">
@@ -200,19 +225,10 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
                           </div>
                       </div>
                       
-                      {/* Action Footer */}
-                      <div className="p-4 bg-black/40 border-t border-white/5">
-                          <button
-                            onClick={() => {
-                              onSelectCluster(cluster);
-                              onClose();
-                            }}
-                            className="w-full py-3 bg-neon-purple hover:bg-purple-600 text-white text-xs font-bold rounded flex items-center justify-center transition-all uppercase tracking-widest shadow-lg shadow-purple-900/20 group-hover:scale-[1.02]"
-                          >
-                            <Check className="w-4 h-4 mr-2" />
-                            Selecteer Concept
-                          </button>
-                      </div>
+                      {/* Action Footer - Removed (moved up) */}
+                      {/* <div className="p-4 bg-black/40 border-t border-white/5">
+                         
+                      </div> */}
                     </div>
                     );
                   })

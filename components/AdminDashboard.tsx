@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3, Sparkles, FolderOpen } from 'lucide-react';
+import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3, Sparkles, FolderOpen, Presentation } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc, where } from 'firebase/firestore';
 import { db, auth, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
 import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage, Cluster, SavedSession } from '../types';
-import { analyzeIdeas, generateIdeaDetails, generateBlog, generatePressRelease, clusterIdeas } from '../services/ai';
+import { analyzeIdeas, generateIdeaDetails, generateBlog, generatePressRelease, clusterIdeas, generatePPTContent } from '../services/ai';
+import PptxGenJS from 'pptxgenjs';
 import { generateSessionCode } from '../utils/codeGenerator';
 import ChatAssistant from './ChatAssistant';
 import ConfirmationModal from './ConfirmationModal';
@@ -20,13 +21,13 @@ interface AdminDashboardProps {
 }
 
 type DashboardPhase = 'MENU' | 'SETUP' | 'LIVE' | 'ANALYSIS' | 'DETAIL';
-type DetailTab = 'GENERAL' | 'QUESTIONS' | 'AI_ANSWERS' | 'BUSINESS_CASE' | 'DEVILS_ADVOCATE' | 'MARKETING' | 'PRESS_RELEASE' | 'BLOG';
+type DetailTab = 'GENERAL' | 'QUESTIONS' | 'AI_ANSWERS' | 'BUSINESS_CASE' | 'DEVILS_ADVOCATE' | 'MARKETING' | 'PRESS_RELEASE' | 'BLOG' | 'POWERPOINT';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccessCode, onUpdateAccessCode }) => {
   const [phase, setPhase] = useState<DashboardPhase>('MENU');
   const [context, setContext] = useState('');
-  // Use User UID as Session ID if available, otherwise fallback (though Admin should always be logged in)
-  const [sessionId, setSessionId] = useState(auth?.currentUser?.uid || CURRENT_SESSION_ID);
+  // Use Global Session ID for Single Tenant Event
+  const [sessionId, setSessionId] = useState(CURRENT_SESSION_ID);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   
   // Saved Sessions State
@@ -70,6 +71,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   // New Generation States
   const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
   const [isGeneratingPressRelease, setIsGeneratingPressRelease] = useState(false);
+  const [isGeneratingPPT, setIsGeneratingPPT] = useState(false);
   const [blogStyle, setBlogStyle] = useState('zakelijk');
   const [pressReleaseStyle, setPressReleaseStyle] = useState('zakelijk');
 
@@ -294,14 +296,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
        // Timer finished, switch phase
        setIsClosing(false);
        setPhase('ANALYSIS');
-       
-       // Close session for public
-       if (db) {
-          setDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
-            isActive: false,
-            updatedAt: Date.now()
-          }, { merge: true }).catch(err => console.error("Error closing session:", err));
-       }
     }
 
     return () => clearInterval(countdownInterval);
@@ -315,10 +309,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     }
   }, [ideas, phase]);
 
+  // Lock scroll when any modal is open
+  useEffect(() => {
+    const isAnyModalOpen = 
+      showLoadSessionModal || 
+      showSettings || 
+      showOverview || 
+      showClusterModal || 
+      showPBIModal || 
+      showFollowUpModal || 
+      showRevealModal || 
+      showCancelModal || 
+      showReports;
+
+    if (isAnyModalOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [
+    showLoadSessionModal, 
+    showSettings, 
+    showOverview, 
+    showClusterModal, 
+    showPBIModal, 
+    showFollowUpModal, 
+    showRevealModal, 
+    showCancelModal, 
+    showReports
+  ]);
+
   // Phase 3: Trigger Analysis
   useEffect(() => {
     if (phase === 'ANALYSIS' && !analysis) {
       const runAnalysis = async () => {
+        // Prevent analysis if there are no ideas
+        if (ideas.length === 0) {
+            console.warn("Skipping analysis: No ideas provided");
+            setAnalysis({
+                innovationScore: 0,
+                sentiment: 'neutral',
+                keywords: [],
+                summary: "Geen ideeën ingediend.",
+                topIdeas: []
+            });
+            return;
+        }
+
         setIsAnalyzing(true);
         
         // Find manual idea if selected
@@ -428,7 +467,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   };
 
   const handleStopSession = async () => {
-    // Instead of immediate stop, trigger countdown
+    // 1. Immediately close the session in Firestore so users can't enter ideas
+    if (db) {
+      try {
+        await setDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
+          isActive: false,
+          updatedAt: Date.now()
+        }, { merge: true });
+      } catch (err) {
+        console.error("Error closing session in Firestore:", err);
+      }
+    }
+
+    // 2. Trigger the local 10s countdown for dramatic effect
     setIsClosing(true);
     setClosingCountdown(10);
   };
@@ -496,6 +547,180 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     setIsGeneratingPressRelease(false);
   };
 
+  const handleGeneratePPT = async () => {
+    if (!selectedIdeaId || !analysis || !ideaDetails) return;
+    setIsGeneratingPPT(true);
+    const selectedIdea = analysis.topIdeas.find(i => i.id === selectedIdeaId);
+    if (selectedIdea) {
+      const pptData = await generatePPTContent(context, selectedIdea);
+      setIdeaDetails({
+        ...ideaDetails,
+        pptOutline: pptData
+      });
+    }
+    setIsGeneratingPPT(false);
+  };
+
+  const handleDownloadPPT = () => {
+    if (!ideaDetails?.pptOutline || !selectedIdea) return;
+
+    const pres = new PptxGenJS();
+    pres.layout = 'LAYOUT_16x9';
+
+    // Theme colors
+    const exactRed = 'E10000';
+    const darkBg = '111111';
+    const white = 'FFFFFF';
+
+    // Master Slide
+    pres.defineSlideMaster({
+      title: 'MASTER_SLIDE',
+      background: { color: darkBg },
+      objects: [
+        { rect: { x: 0, y: 0, w: '100%', h: 0.15, fill: { color: exactRed } } },
+        { text: { text: 'EXACT IDEA PROCESSOR', options: { x: 0.5, y: 0.25, fontSize: 10, color: '888888', fontFace: 'Arial' } } },
+        { line: { x: 0.5, y: 0.8, w: '90%', h: 0, line: { color: '333333', width: 1 } } }
+      ]
+    });
+
+    const createSlide = (slide: { title: string; content: string[]; speakerNotes: string }) => {
+        const s = pres.addSlide({ masterName: 'MASTER_SLIDE' });
+        
+        // Title
+        s.addText(slide.title, { 
+            x: 0.5, y: 1.0, w: '90%', 
+            fontSize: 32, bold: true, color: white, fontFace: 'Arial' 
+        });
+
+        // Content
+        if (slide.content && slide.content.length > 0) {
+            // Narrative style: No bullets, larger line spacing, paragraphs
+            const items = slide.content.map(p => ({ text: p + "\n\n", options: { fontSize: 16, color: 'DDDDDD', breakLine: true, bullet: false } }));
+            
+            s.addText(items, { 
+                x: 0.5, y: 1.8, w: '90%', h: 4.7, 
+                fontFace: 'Arial', lineSpacing: 24, valign: 'top', align: 'justify'
+            });
+        }
+
+        // Speaker Notes
+        if (slide.speakerNotes) {
+            s.addNotes(slide.speakerNotes);
+        }
+    };
+
+    const slides = ideaDetails.pptOutline.slides;
+    
+    // 1. Title Slide (First slide from AI)
+    if (slides.length > 0) {
+        createSlide(slides[0]);
+    }
+
+    // NEW: Original Idea Slide
+    const sOriginal = pres.addSlide({ masterName: 'MASTER_SLIDE' });
+    sOriginal.addText("HET OORSPRONKELIJKE IDEE", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white, fontFace: 'Arial' });
+    sOriginal.addText(`"${selectedIdea.content}"`, { 
+        x: 1.0, y: 2.0, w: '80%', h: 3.0, 
+        fontSize: 24, color: 'DDDDDD', italic: true, align: 'center', valign: 'middle', 
+        shape: pres.ShapeType.rect, fill: { color: '222222' }, outline: { color: '444444', size: 1 } 
+    });
+    sOriginal.addText(`- ${selectedIdea.name}`, { x: 1.0, y: 5.2, w: '80%', fontSize: 14, color: exactRed, align: 'right', bold: true });
+
+    // 2. Press Release (if exists)
+    if (ideaDetails.pressRelease) {
+        const s = pres.addSlide({ masterName: 'MASTER_SLIDE' });
+        s.addText("PERSBERICHT", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white, fontFace: 'Arial' });
+        
+        s.addText(ideaDetails.pressRelease.title, { x: 0.5, y: 1.8, w: '90%', fontSize: 24, bold: true, color: exactRed });
+        s.addText(`${ideaDetails.pressRelease.location} - ${ideaDetails.pressRelease.date}`, { x: 0.5, y: 2.3, w: '90%', fontSize: 12, italic: true, color: 'AAAAAA' });
+        
+        s.addText(ideaDetails.pressRelease.content, { x: 0.5, y: 2.6, w: '90%', h: 4.0, fontSize: 12, color: 'DDDDDD', valign: 'top' });
+    }
+
+    // 3. Rest of the standard slides (2 to end)
+    for (let i = 1; i < slides.length; i++) {
+        createSlide(slides[i]);
+    }
+
+    // 4. Social Media (After Appendix)
+    if (ideaDetails.marketing) {
+        // LinkedIn
+        const sLink = pres.addSlide({ masterName: 'MASTER_SLIDE' });
+        sLink.addText("LinkedIn Campagne", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
+        
+        // 1. Background Container (White Card)
+        sLink.addShape(pres.ShapeType.rect, { 
+            x: 1.5, y: 1.6, w: 7, h: 3.5, 
+            fill: { color: 'FFFFFF' }, 
+            line: { color: '0077B5', width: 1 } 
+        });
+
+        // 2. Header (Gray bg)
+        sLink.addShape(pres.ShapeType.rect, { 
+            x: 1.5, y: 1.6, w: 7, h: 0.8, 
+            fill: { color: 'F3F2EF' } 
+        });
+
+        // 3. Header Content (Avatar & Name)
+        sLink.addShape(pres.ShapeType.ellipse, { 
+            x: 1.7, y: 1.75, w: 0.5, h: 0.5, 
+            fill: { color: 'CCCCCC' } 
+        });
+        sLink.addText("Exact Life", { 
+            x: 2.3, y: 1.75, w: 3, h: 0.3,
+            fontSize: 12, bold: true, color: '000000', valign: 'top' 
+        });
+        sLink.addText("Just now • 🌐", { 
+            x: 2.3, y: 2.05, w: 3, h: 0.2,
+            fontSize: 9, color: '666666', valign: 'top'
+        });
+
+        // 4. Post Content (Text below header)
+        sLink.addText(ideaDetails.marketing.linkedInPost, { 
+            x: 1.7, y: 2.5, w: 6.6, h: 2.4, 
+            fontSize: 10, color: '333333', 
+            valign: 'top', align: 'left'
+        });
+
+        // Tweet
+        const sTweet = pres.addSlide({ masterName: 'MASTER_SLIDE' });
+        sTweet.addText("SOCIAL MEDIA: Viral Tweet", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
+        
+        sTweet.addText(ideaDetails.marketing.viralTweet, { 
+            x: 2.0, y: 2.0, w: 6, h: 2.5, 
+            fontSize: 14, color: 'FFFFFF', 
+            shape: pres.ShapeType.rect, fill: { color: '000000' }, 
+            outline: { color: '333333', size: 1 },
+            align: 'center', valign: 'middle'
+        });
+    }
+
+    // 5. Blog Post (if exists) - 2 Columns, Font 8
+    if (ideaDetails.blogPost) {
+        const s = pres.addSlide({ masterName: 'MASTER_SLIDE' });
+        s.addText("BLOG POST", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
+        s.addText(ideaDetails.blogPost.title, { x: 0.5, y: 1.6, w: '90%', fontSize: 20, bold: true, color: 'E1B000' });
+        
+        // Split content into two chunks roughly
+        const words = ideaDetails.blogPost.content.split(' ');
+        const mid = Math.ceil(words.length / 2);
+        const col1 = words.slice(0, mid).join(' ');
+        const col2 = words.slice(mid).join(' ');
+
+        s.addText(col1, { x: 0.5, y: 2.2, w: 4.2, h: 4.5, fontSize: 9, color: 'DDDDDD', valign: 'top', align: 'justify' });
+        s.addText(col2, { x: 5.0, y: 2.2, w: 4.2, h: 4.5, fontSize: 9, color: 'DDDDDD', valign: 'top', align: 'justify' });
+    }
+
+    // Save with timestamp
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+    const dateStr = now.toLocaleDateString('nl-NL').replace(/-/g, '_'); // depending on locale, might need tweaking
+    // Let's use ISO date for safety: YYYY-MM-DD
+    const isoDate = now.toISOString().split('T')[0];
+    
+    pres.writeFile({ fileName: `IdeaProcessor_${isoDate}_${timeStr}.pptx` });
+  };
+
   const handleReset = () => {
       setPhase('MENU');
       setContext('');
@@ -511,11 +736,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       setRevealedIdeaId(null);
       setShowRevealModal(false);
 
-      // Also reset manual selection in Firestore
+      // Also reset manual selection in Firestore and ensure session is closed
       if (db) {
         updateDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
-          selectedManualIdeaId: null
-        }).catch(err => console.error("Error resetting manual idea:", err));
+          selectedManualIdeaId: null,
+          isActive: false
+        }).catch(err => console.error("Error resetting session in Firestore:", err));
       }
   };
 
@@ -1005,6 +1231,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
   const handleStressTest = async () => {
     if (!db) return;
+    
+    // Limit to 200 ideas total in one session
+    const currentCount = ideas.length;
+    const limit = 200;
+    const batchSize = 10;
+    const remaining = limit - currentCount;
+    
+    if (remaining <= 0) {
+      alert(`Limiet van ${limit} ideeën bereikt voor deze sessie.`);
+      return;
+    }
+
+    // Add 10 ideas per click, but don't exceed the total limit of 200
+    const countToAdd = Math.min(remaining, batchSize);
+
     const stressIdeas = [
       // Cluster 1: Magazijn Automatisering
       "We moeten robots inzetten voor het orderpicken in het magazijn.",
@@ -1025,16 +1266,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
     try {
       const ideasRef = collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS);
-      const promises = stressIdeas.map(content => {
-        return addDoc(ideasRef, {
+      const promises = [];
+      
+      for (let i = 0; i < countToAdd; i++) {
+        const content = stressIdeas[i % stressIdeas.length];
+        promises.push(addDoc(ideasRef, {
           name: `Test Gebruiker ${Math.floor(Math.random() * 1000)}`,
           content: content,
-          timestamp: Date.now()
-        });
-      });
+          timestamp: Date.now() + i
+        }));
+      }
+      
       await Promise.all(promises);
     } catch (e) {
-      // Silence error
+      console.error("Stress test failed:", e);
     }
   };
 
@@ -1093,10 +1338,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         // 2. Update session with new question and reset state
         await updateDoc(sessionRef, {
             question: followUpQuestion,
+            isActive: true, // Make sure it's active again
             phase: 'LIVE',
             selectedIdeaId: null,
             selectedManualIdeaId: null,
-            analysis: null
+            analysis: null,
+            updatedAt: Date.now()
         });
 
         // Small delay to show 100% progress
@@ -1778,6 +2025,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     >
                        <span className="flex items-center"><FileText className="w-4 h-4 mr-2" /> Blog</span>
                     </button>
+                    <button 
+                        onClick={() => setActiveTab('POWERPOINT')}
+                        className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'POWERPOINT' ? 'border-exact-red text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
+                    >
+                       <span className="flex items-center"><Presentation className="w-4 h-4 mr-2" /> PowerPoint</span>
+                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -2205,6 +2458,92 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         <button className="text-gray-400 hover:text-white transition-colors"><MessageSquare className="w-5 h-5" /></button>
                                     </div>
                                     <button onClick={() => handleCopyToChat(ideaDetails.blogPost?.content || '')} className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" title="Kopieer"><MessageSquare className="w-4 h-4 mr-2" /> Bespreek in Chat</button>
+                                </div>
+                             </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'POWERPOINT' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            {!ideaDetails.pptOutline ? (
+                                <div className="bg-white/5 border border-white/10 p-10 rounded-lg text-center max-w-2xl mx-auto">
+                                    <Presentation className="w-16 h-16 text-exact-red mx-auto mb-6 opacity-50" />
+                                    <h3 className="text-2xl font-bold text-white mb-4">Genereer PowerPoint Deck</h3>
+                                    <p className="text-gray-400 mb-8">
+                                        Maak een volledige presentatie (12 dia's) inclusief sprekersnotities.
+                                    </p>
+                                    
+                                    <button 
+                                        onClick={handleGeneratePPT}
+                                        disabled={isGeneratingPPT}
+                                        className="px-8 py-3 bg-exact-red hover:bg-red-700 text-white font-bold rounded-md transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+                                    >
+                                        {isGeneratingPPT ? (
+                                            <>
+                                                <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                                                Bezig...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="w-4 h-4 mr-2" />
+                                                Genereren
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            ) : (
+                             <div className="max-w-4xl mx-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-2xl font-bold text-white flex items-center">
+                                        <Presentation className="mr-3 text-exact-red" />
+                                        Presentatie Overzicht ({ideaDetails.pptOutline.slides.length} dia's)
+                                    </h3>
+                                    <div className="flex gap-4">
+                                        <button 
+                                            onClick={() => setIdeaDetails({...ideaDetails, pptOutline: undefined})}
+                                            className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                                        >
+                                            <RotateCcw className="w-5 h-5" />
+                                        </button>
+                                        <button 
+                                            onClick={handleDownloadPPT}
+                                            className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded flex items-center transition-all border border-white/20"
+                                        >
+                                            <Download className="w-4 h-4 mr-2" />
+                                            Download .PPTX
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {ideaDetails.pptOutline.slides.map((slide, idx) => (
+                                        <div key={idx} className="bg-white/5 border border-white/10 p-6 rounded-lg group hover:bg-white/10 transition-colors">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <h4 className="font-bold text-lg text-white flex items-center">
+                                                    <span className="bg-white/10 text-gray-400 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">
+                                                        {idx + 1}
+                                                    </span>
+                                                    {slide.title}
+                                                </h4>
+                                            </div>
+                                            
+                                            <div className="pl-11">
+                                                <ul className="list-disc list-outside text-gray-300 space-y-1 mb-4">
+                                                    {slide.content?.map((point, i) => (
+                                                        <li key={i}>{point}</li>
+                                                    ))}
+                                                </ul>
+                                                
+                                                {slide.speakerNotes && (
+                                                    <div className="bg-black/30 p-4 rounded text-sm text-gray-500 italic border-l-2 border-exact-red/50">
+                                                        <span className="text-exact-red font-bold not-italic mr-2">Speaker Notes:</span>
+                                                        {slide.speakerNotes}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                              </div>
                             )}

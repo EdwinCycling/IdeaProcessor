@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { TEXTS } from '../constants/texts';
 
@@ -7,6 +7,15 @@ interface SuccessScreenProps {
 }
 
 const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
+  // Lock scroll when success screen is shown
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-exact-dark z-50 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
       

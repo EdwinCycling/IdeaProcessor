@@ -12,6 +12,7 @@ import AdminLoginModal from './components/AdminLoginModal';
 import IdeaForm from './components/IdeaForm';
 import SuccessScreen from './components/SuccessScreen';
 import AdminDashboard from './components/AdminDashboard';
+import { db, auth, COLLECTIONS } from './services/firebase';
 import { TEXTS } from './constants/texts';
 import { APP_CONFIG } from './config';
 
@@ -21,13 +22,19 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('LANDING');
   const [showAccessModal, setShowAccessModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [firebaseError, setFirebaseError] = useState(false);
   
   // Lifted State for Access Code (shared between Admin Dashboard and Access Modal)
   const [accessCode, setAccessCode] = useState(APP_CONFIG.ACCESS_CODE);
   const [scannedCode, setScannedCode] = useState('');
-  const [targetSessionId, setTargetSessionId] = useState(APP_CONFIG.CURRENT_SESSION_ID || 'exact-live-event');
+  const [targetSessionId, setTargetSessionId] = useState('exact-live-event');
 
   useEffect(() => {
+    if (!db) {
+      setFirebaseError(true);
+      console.error("Firebase is not initialized. Check your .env file.");
+    }
+
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
     if (codeParam) {
@@ -102,8 +109,15 @@ const App: React.FC = () => {
   }
 
   // 4. Default View: Landing Page
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
   return (
     <div className="min-h-screen bg-exact-dark text-white font-sans selection:bg-exact-red selection:text-white relative">
+      {firebaseError && isLocalhost && (
+        <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-[10px] py-1 px-4 z-[9999] text-center font-mono">
+          WAARSCHUWING: Firebase is niet geconfigureerd. Controleer je .env bestand.
+        </div>
+      )}
       <CookieConsent />
       <Navbar onAdminLogin={handleAdminLoginClick} />
       

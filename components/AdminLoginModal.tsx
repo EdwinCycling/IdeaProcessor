@@ -60,6 +60,15 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
     return () => clearInterval(timer);
   }, [lockoutTime]);
 
+  // Lock scroll when modal is open
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

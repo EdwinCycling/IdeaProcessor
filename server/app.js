@@ -10,6 +10,13 @@ dotenv.config();
 const app = express();
 const apiRouter = express.Router();
 
+const isProduction = process.env.NODE_ENV === 'production';
+const debugLog = (...args) => {
+  if (!isProduction) {
+    console.log(...args);
+  }
+};
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors({
@@ -492,15 +499,15 @@ apiRouter.post('/chat', async (req, res, next) => {
 apiRouter.post('/cluster-ideas', async (req, res, next) => {
     const { context, ideas } = req.body;
 
-    console.log(`[CLUSTER-DEBUG] Received request to cluster ${ideas?.length || 0} ideas.`);
+    debugLog(`[CLUSTER-DEBUG] Received request to cluster ${ideas?.length || 0} ideas.`);
 
     if (!ideas || !Array.isArray(ideas) || ideas.length === 0) {
-        console.warn("[CLUSTER-DEBUG] No ideas provided for clustering.");
+        if (!isProduction) console.warn("[CLUSTER-DEBUG] No ideas provided for clustering.");
         return res.status(400).json({ error: "No ideas provided" });
     }
 
     try {
-        console.log(`[CLUSTER-DEBUG] Processing context length: ${context?.length || 0}`);
+        debugLog(`[CLUSTER-DEBUG] Processing context length: ${context?.length || 0}`);
         
         const cleanContext = sanitizeInput(context || "");
         const ideasText = ideas.map(i => 
@@ -543,7 +550,7 @@ apiRouter.post('/cluster-ideas', async (req, res, next) => {
           </system_instruction>
         `;
 
-        console.log("[CLUSTER-DEBUG] Sending prompt to Cerebras...");
+        debugLog("[CLUSTER-DEBUG] Sending prompt to Cerebras...");
 
         const completion = await callAI({
             messages: [
@@ -554,7 +561,7 @@ apiRouter.post('/cluster-ideas', async (req, res, next) => {
         });
 
         let responseText = completion.choices[0].message.content;
-        console.log("[CLUSTER-DEBUG] Raw response from Cerebras:", responseText);
+        debugLog("[CLUSTER-DEBUG] Raw response from Cerebras:", responseText);
         
         if (responseText.includes("```")) {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '');
@@ -562,7 +569,7 @@ apiRouter.post('/cluster-ideas', async (req, res, next) => {
         responseText = responseText.trim();
 
         const result = extractJSON(responseText);
-        console.log(`[CLUSTER-DEBUG] Successfully parsed ${result.clusters?.length || 0} clusters.`);
+        debugLog(`[CLUSTER-DEBUG] Successfully parsed ${result.clusters?.length || 0} clusters.`);
         
         res.json(result);
 
@@ -575,7 +582,7 @@ apiRouter.post('/cluster-ideas', async (req, res, next) => {
 apiRouter.post('/generate-follow-up-question', async (req, res, next) => {
     const { context, idea, existingQuestions } = req.body;
     
-    console.log("Generating follow-up question for:", idea?.name);
+    debugLog("Generating follow-up question for:", idea?.name);
 
     if (!idea || !idea.content) {
         console.error("Follow-up generation: Missing idea or content");
@@ -634,7 +641,7 @@ apiRouter.post('/generate-follow-up-question', async (req, res, next) => {
             throw new Error("Empty response from AI");
         }
 
-        console.log("Generated question:", question);
+        debugLog("Generated question:", question);
         res.json({ question });
 
     } catch (error) {
@@ -648,6 +655,88 @@ apiRouter.post('/generate-follow-up-question', async (req, res, next) => {
 // Setup simple chat endpoint if needed later
 apiRouter.get('/health', (req, res) => {
     res.send('Exact Idea Processor API is running');
+});
+
+apiRouter.post('/generate-ppt', async (req, res, next) => {
+    const { context, idea } = req.body;
+
+    if (!idea) {
+        return res.status(400).json({ error: "No idea provided" });
+    }
+
+    try {
+        const cleanContext = sanitizeInput(context || "");
+        const cleanIdeaName = sanitizeInput(idea.name);
+        const cleanIdeaContent = sanitizeInput(idea.content);
+
+        const prompt = `
+          <system_instruction>
+          Create a PowerPoint presentation outline in Dutch based on the context and selected idea.
+          Follow exactly the structure provided below.
+          </system_instruction>
+   
+          <context>${cleanContext}</context>
+          <selected_idea>
+            <author>${cleanIdeaName}</author>
+            <content>${cleanIdeaContent}</content>
+          </selected_idea>
+          
+          <task>
+          Generate content for the following 12 slides:
+          1. Titelpagina (Title, Subtitle, Presenter Name: Idea Author)
+          2. Samenvatting (Problem, Solution, Costs, Expected ROI)
+          3. Probleemstelling (Current Challenge, Facts/Figures)
+          4. Achtergrond/Context (Market/Company Context)
+          5. Voorgestelde Oplossing (Detailed Idea)
+          6. Doelstellingen en Impact (SMART Goals)
+          7. Analyse van Alternatieven (Other Options vs This Solution)
+          8. Kosten-batenanalyse (Investment vs Return)
+          9. Risicoanalyse (Obstacles & Mitigation)
+          10. Actieplan/Tijdslijn (Phased Approach)
+          11. Conclusie en Aanbeveling (Call to Action)
+          12. Vragen & Antwoorden (Q&A placeholder)
+
+          For each slide, provide:
+          - title: The slide title
+          - content: An array of paragraphs (strings). IMPORTANT: Do NOT use bullet points. Write in a narrative, storytelling style. Use full sentences and engaging language to tell the story of the idea. Each string in the array should be a paragraph.
+          - speakerNotes: A short script for the presenter
+          </task>
+          
+          Schema:
+          {
+            "slides": [
+              {
+                "title": "string",
+                "content": ["paragraph 1", "paragraph 2"],
+                "speakerNotes": "string"
+              }
+            ]
+          }
+        `;
+
+        const completion = await callAI({
+            messages: [
+                { role: "system", content: "You are a JSON generator. Always output valid JSON inside a code block or purely raw JSON." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 4096,
+        });
+
+        let responseText = completion.choices[0].message.content;
+        
+        if (responseText.includes("```")) {
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '');
+        }
+        responseText = responseText.trim();
+
+        const result = extractJSON(responseText);
+        res.json(result);
+
+    } catch (error) {
+        console.error("PPT Generation Error:", error);
+        next(error);
+    }
 });
 
 // Mount API Router
