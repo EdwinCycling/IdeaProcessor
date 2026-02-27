@@ -65,7 +65,7 @@ export const analyzeIdeas = async (context: string, ideas: Idea[]): Promise<AIAn
       resolve({
         summary: "De ingediende ideeën focussen sterk op duurzaamheid door digitalisering en hergebruik. Er is een duidelijke wens om processen slimmer te maken met technologie (AI, AR) en verspilling tegen te gaan.",
         topIdeas: ideas.slice(0, 3), 
-        headline: "Exact Medewerkers Pleiten Voor High-Tech Duurzaamheid",
+        headline: "Medewerkers Pleiten Voor High-Tech Duurzaamheid",
         innovationScore: 87,
         keywords: ["Circulariteit", "AI Automatisering", "Augmented Reality", "Kostenbesparing"]
       });

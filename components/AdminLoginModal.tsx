@@ -121,7 +121,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative">
+      <div className="bg-brand-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
@@ -132,7 +132,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
             {lockoutTime > 0 ? (
-                <AlertTriangle className="w-8 h-8 text-exact-red animate-pulse" />
+                <AlertTriangle className="w-8 h-8 text-brand-primary animate-pulse" />
             ) : (
                 <Shield className="w-8 h-8 text-neon-cyan" />
             )}
@@ -189,7 +189,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
           </div>
           
           {error && (
-            <div className="flex items-center text-exact-red text-xs p-2 bg-exact-red/10 rounded border border-exact-red/20">
+            <div className="flex items-center text-brand-primary text-xs p-2 bg-brand-primary/10 rounded border border-brand-primary/20">
                 <AlertTriangle className="w-3 h-3 mr-2" />
                 {errorMessage || 'Er is iets misgegaan.'}
             </div>
@@ -202,7 +202,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
               className={`w-full py-3 px-4 rounded font-bold text-white transition-all transform flex items-center justify-center
                 ${loading || lockoutTime > 0 
                   ? 'bg-gray-700 cursor-not-allowed opacity-50' 
-                  : 'bg-gradient-to-r from-exact-red to-red-700 hover:from-red-500 hover:to-exact-red hover:scale-[1.02] shadow-lg shadow-exact-red/20'}`}
+                  : 'bg-gradient-to-r from-brand-primary to-purple-700 hover:from-purple-500 hover:to-brand-primary hover:scale-[1.02] shadow-lg shadow-brand-primary/20'}`}
             >
               {loading ? (
                 <span className="flex items-center">

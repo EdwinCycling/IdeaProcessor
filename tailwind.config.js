@@ -11,8 +11,8 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
-        exact: {
-          red: '#E10000', // Approximate Exact Red
+        brand: {
+          primary: '#A855F7', // Light Purple
           dark: '#0A0A0A',
           panel: '#161616',
         },

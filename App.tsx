@@ -27,7 +27,7 @@ const App: React.FC = () => {
   // Lifted State for Access Code (shared between Admin Dashboard and Access Modal)
   const [accessCode, setAccessCode] = useState(APP_CONFIG.ACCESS_CODE);
   const [scannedCode, setScannedCode] = useState('');
-  const [targetSessionId, setTargetSessionId] = useState('exact-live-event');
+  const [targetSessionId, setTargetSessionId] = useState('idea-live-event');
 
   useEffect(() => {
     if (!db) {
@@ -112,7 +112,7 @@ const App: React.FC = () => {
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
   return (
-    <div className="min-h-screen bg-exact-dark text-white font-sans selection:bg-exact-red selection:text-white relative">
+    <div className="min-h-screen bg-brand-dark text-white font-sans selection:bg-brand-primary selection:text-white relative">
       {firebaseError && isLocalhost && (
         <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-[10px] py-1 px-4 z-[9999] text-center font-mono">
           WAARSCHUWING: Firebase is niet geconfigureerd. Controleer je .env bestand.
@@ -126,7 +126,7 @@ const App: React.FC = () => {
         <Features />
         
         {/* USP / Trust Signal Section */}
-        <section className="py-10 bg-exact-red/10 border-y border-exact-red/20">
+        <section className="py-10 bg-brand-primary/10 border-y border-brand-primary/20">
              <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16 items-center opacity-70">
                  <div className="flex items-center space-x-2">
                      <span className="font-bold text-white">{TEXTS.USP.POWERED}</span>
@@ -147,7 +147,7 @@ const App: React.FC = () => {
         
         {/* Final CTA */}
         <section className="py-24 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-t from-exact-red/20 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/20 to-transparent pointer-events-none"></div>
             <div className="max-w-4xl mx-auto text-center px-4 relative z-10">
                 <h2 className="text-4xl md:text-5xl font-black mb-6">{TEXTS.CTA_BOTTOM.TITLE}</h2>
                 <p className="text-xl text-gray-400 mb-10">
@@ -155,7 +155,7 @@ const App: React.FC = () => {
                 </p>
                 <button 
                   onClick={handleStartIdea}
-                  className="px-10 py-5 bg-white text-exact-dark font-black text-lg rounded-sm hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] uppercase"
+                  className="px-10 py-5 bg-white text-brand-dark font-black text-lg rounded-sm hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] uppercase"
                 >
                     {TEXTS.CTA_BOTTOM.BTN}
                 </button>

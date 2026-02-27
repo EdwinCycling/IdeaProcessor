@@ -1,11 +1,10 @@
-
 import pkg from '../package.json';
 
 export const TEXTS = {
   APP_NAME: {
     PREFIX: "=",
-    MAIN: "Exact",
-    SUFFIX: "Idea Processor",
+    MAIN: "Idea",
+    SUFFIX: "Processor",
     VERSION: `v ${pkg.version}`,
   },
   NAV: {
@@ -67,7 +66,7 @@ export const TEXTS = {
   MODALS: {
     ACCESS: {
       TITLE: "Toegangscode",
-      DESC: "Voer de code in die op het scherm wordt getoond.",
+      DESC: "Voer de code in die op het scherm wordt getoond. Deelname is VOLSTREKT anoniem.",
       PLACEHOLDER: "Code...",
       ERROR: "Onjuiste code.",
       CANCEL: "Annuleren",
@@ -95,11 +94,11 @@ export const TEXTS = {
     },
     PRIVACY: {
       TITLE: "Privacy & AI Beleid",
-      CONTENT: "Uw privacy is belangrijk voor ons. De gegevens die u deelt worden gebruikt voor de functionaliteit van de Exact Idea Processor. Let op: alle analyses en uitkomsten worden gegenereerd door AI-modellen. De ingevoerde data kan door deze modellen worden gebruikt voor trainingsdoeleinden. Wij adviseren dringend om geen bedrijfsgevoelige, vertrouwelijke of persoonlijke gegevens in de ideeën op te nemen. Het gebruik van de applicatie en de invoer van data geschiedt volledig op eigen risico."
+      CONTENT: "Uw privacy is belangrijk voor ons. De gegevens die u deelt worden gebruikt voor de functionaliteit van de Idea Processor. Let op: alle analyses en uitkomsten worden gegenereerd door AI-modellen. De ingevoerde data kan door deze modellen worden gebruikt voor trainingsdoeleinden. Wij adviseren dringend om geen bedrijfsgevoelige, vertrouwelijke of persoonlijke gegevens in de ideeën op te nemen. Het gebruik van de applicatie en de invoer van data geschiedt volledig op eigen risico."
     },
     COOKIES: {
       TITLE: "Cookiebeleid",
-      CONTENT: "Exact Idea Processor gebruikt functionele cookies om uw sessie en voorkeuren te beheren. Er worden geen tracking-cookies van derden gebruikt voor advertentiedoeleinden. De verzamelde gegevens (zoals ingevoerde toegangscodes en sessie-ID's) worden lokaal opgeslagen en versleuteld verzonden naar onze beveiligde servers.",
+      CONTENT: "De Idea Processor gebruikt functionele cookies om uw sessie en voorkeuren te beheren. Er worden geen tracking-cookies van derden gebruikt voor advertentiedoeleinden. De verzamelde gegevens (zoals ingevoerde toegangscodes en sessie-ID's) worden lokaal opgeslagen en versleuteld verzonden naar onze beveiligde servers.",
       BANNER: {
         TEXT: "Wij gebruiken cookies om uw ervaring te verbeteren en de applicatie goed te laten werken.",
         BTN_ACCEPT: "Accepteren en Doorgaan"
@@ -107,24 +106,25 @@ export const TEXTS = {
     },
     DISCLAIMER: {
       TITLE: "Disclaimer",
-      CONTENT: "De Exact Idea Processor is een innovatie-tool ontwikkeld door het AI Innovation Lab. Gebruik van deze applicatie is op eigen risico. Exact is op geen enkele wijze aansprakelijk voor de resultaten, suggesties of plannen die door de AI worden gegenereerd. De output van de AI dient uitsluitend ter inspiratie en er kunnen geen rechten aan worden ontleend. Exact aanvaardt geen enkele aansprakelijkheid voor directe of indirecte schade die voortvloeit uit het gebruik van deze applicatie of de daaruit voortvloeiende concepten. Door gebruik te maken van deze app erkent u dat AI-modellen onnauwkeurigheden kunnen bevatten en dat u zelf verantwoordelijk bent voor de validatie van alle gegenereerde informatie."
+      CONTENT: "De Idea Processor is een innovatie-tool ontwikkeld door het AI Innovation Lab. Gebruik van deze applicatie is op eigen risico. Wij zijn op geen enkele wijze aansprakelijk voor de resultaten, suggesties of plannen die door de AI worden gegenereerd. De output van de AI dient uitsluitend ter inspiratie en er kunnen geen rechten aan worden ontleend. Wij aanvaarden geen enkele aansprakelijkheid voor directe of indirecte schade die voortvloeit uit het gebruik van deze applicatie of de daaruit voortvloeiende concepten. Door gebruik te maken van deze app erkent u dat AI-modellen onnauwkeurigheden kunnen bevatten en dat u zelf verantwoordelijk bent voor de validatie van alle gegenereerde informatie."
     },
     CONTACT: {
       TITLE: "Contact",
       DESC: "Vragen of een demo?",
       NAME: "Edwin",
-      ROLE: "AI Innovation Lap CPO",
-      EMAIL: "edwin.dingjan@exact.com"
+      ROLE: "AI Innovation Lab CPO",
+      EMAIL: "edwin@innovation-lab.com"
     }
   },
   FORM: {
     TITLE: "Nieuw Idee",
     HEADING: "Deel uw inzicht",
     SUBHEADING: "Uw input wordt direct verwerkt door onze AI.",
-    LABEL_NAME: "UW NAAM",
+    LABEL_NAME: "NICKNAME",
+    NICKNAME_NOTE: "niet verplicht, anonimiteit gegarandeerd",
     LABEL_IDEA: "UW IDEE",
-    PLACEHOLDER_NAME: "Bijv. Jan de Vries",
-    PLACEHOLDER_IDEA: "Beschrijf uw idee in minimaal 5 karakters...",
+    PLACEHOLDER_NAME: "",
+    PLACEHOLDER_IDEA: "",
     BTN_SUBMIT: "Insturen",
     BTN_SENDING: "Versturen...",
     BTN_CANCEL: "Annuleren",
@@ -189,7 +189,7 @@ export const TEXTS = {
     }
   },
   FOOTER: {
-    COPYRIGHT: "© 2026 Edwin - AI Innovation Lap CPO",
+    COPYRIGHT: "© 2026 Edwin - AI Innovation Lab CPO",
     LINKS: {
       PRIVACY: "Privacy",
       DISCLAIMER: "Disclaimer",

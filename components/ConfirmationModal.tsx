@@ -49,7 +49,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-6 shadow-2xl relative animate-in zoom-in-95 duration-200"
+        className="bg-brand-panel border border-white/20 rounded-lg max-w-md w-full p-6 shadow-2xl relative animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <button 
@@ -62,11 +62,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div className="text-center mb-6">
           <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 border ${
             variant === 'danger' 
-              ? 'bg-red-900/20 border-red-500/30' 
+              ? 'bg-purple-900/20 border-purple-500/30' 
               : 'bg-yellow-900/20 border-yellow-500/30'
           }`}>
             <AlertTriangle className={`w-7 h-7 ${
-              variant === 'danger' ? 'text-exact-red' : 'text-yellow-500'
+              variant === 'danger' ? 'text-brand-primary' : 'text-yellow-500'
             }`} />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
@@ -91,7 +91,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             }}
             className={`flex-1 px-4 py-2.5 font-bold rounded text-white shadow-lg transition-all ${
               variant === 'danger'
-                ? 'bg-exact-red hover:bg-red-700 shadow-red-900/20'
+                ? 'bg-brand-primary hover:opacity-90 shadow-purple-900/20'
                 : variant === 'warning'
                 ? 'bg-yellow-600 hover:bg-yellow-700 shadow-yellow-900/20'
                 : 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/20'

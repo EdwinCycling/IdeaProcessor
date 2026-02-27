@@ -24,7 +24,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
     <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full grid-bg -z-10 opacity-30"></div>
       <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-exact-red/20 blur-[120px] rounded-full -z-10 transition-transform duration-100 ease-out"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-primary/20 blur-[120px] rounded-full -z-10 transition-transform duration-100 ease-out"
         style={{ transform: `translate(calc(-50% + ${mousePos.x * -2}px), calc(-50% + ${mousePos.y * -2}px))` }}
       ></div>
       
@@ -38,7 +38,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
             </div>
             
             <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight text-white">
-              {TEXTS.HERO.TITLE_PREFIX} <span className="text-transparent bg-clip-text bg-gradient-to-r from-exact-red to-orange-600 neon-text-glow">{TEXTS.HERO.TITLE_HIGHLIGHT}</span>.
+              {TEXTS.HERO.TITLE_PREFIX} <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-purple-400 neon-text-glow">{TEXTS.HERO.TITLE_HIGHLIGHT}</span>.
             </h1>
             
             <p className="text-xl text-gray-400 max-w-lg font-light">
@@ -48,7 +48,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button 
                 onClick={onStart}
-                className="group relative px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-sm transition-all neon-glow-green flex items-center justify-center"
+                className="group relative px-8 py-4 bg-brand-primary hover:opacity-90 text-white font-bold rounded-sm transition-all neon-glow flex items-center justify-center"
               >
                 {TEXTS.HERO.CTA_PRIMARY}
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -73,8 +73,8 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center space-y-4">
-                        <div className="inline-block p-4 bg-exact-red/10 rounded-full">
-                            <Monitor className="w-12 h-12 text-exact-red" />
+                        <div className="inline-block p-4 bg-brand-primary/10 rounded-full">
+                            <Monitor className="w-12 h-12 text-brand-primary" />
                         </div>
                         <div className="space-y-2">
                             <div className="h-2 w-32 bg-gray-700 rounded mx-auto animate-pulse"></div>

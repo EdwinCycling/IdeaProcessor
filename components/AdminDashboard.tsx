@@ -607,7 +607,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     pres.layout = 'LAYOUT_16x9';
 
     // Theme colors
-    const exactRed = 'E10000';
+    const brandPurple = 'A855F7';
     const darkBg = '111111';
     const white = 'FFFFFF';
 
@@ -616,8 +616,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       title: 'MASTER_SLIDE',
       background: { color: darkBg },
       objects: [
-        { rect: { x: 0, y: 0, w: '100%', h: 0.15, fill: { color: exactRed } } },
-        { text: { text: 'EXACT IDEA PROCESSOR', options: { x: 0.5, y: 0.25, fontSize: 10, color: '888888', fontFace: 'Arial' } } },
+        { rect: { x: 0, y: 0, w: '100%', h: 0.15, fill: { color: brandPurple } } },
+        { text: { text: 'IDEA PROCESSOR', options: { x: 0.5, y: 0.25, fontSize: 10, color: '888888', fontFace: 'Arial' } } },
         { line: { x: 0.5, y: 0.8, w: '90%', h: 0, line: { color: '333333', width: 1 } } }
       ]
     });
@@ -663,14 +663,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         fontSize: 24, color: 'DDDDDD', italic: true, align: 'center', valign: 'middle', 
         shape: pres.ShapeType.rect, fill: { color: '222222' }, outline: { color: '444444', size: 1 } 
     });
-    sOriginal.addText(`- ${selectedIdea.name}`, { x: 1.0, y: 5.2, w: '80%', fontSize: 14, color: exactRed, align: 'right', bold: true });
+    sOriginal.addText(`- ${selectedIdea.name}`, { x: 1.0, y: 5.2, w: '80%', fontSize: 14, color: brandPurple, align: 'right', bold: true });
 
     // 2. Press Release (if exists)
     if (ideaDetails.pressRelease) {
         const s = pres.addSlide({ masterName: 'MASTER_SLIDE' });
         s.addText("PERSBERICHT", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white, fontFace: 'Arial' });
         
-        s.addText(ideaDetails.pressRelease.title, { x: 0.5, y: 1.8, w: '90%', fontSize: 24, bold: true, color: exactRed });
+        s.addText(ideaDetails.pressRelease.title, { x: 0.5, y: 1.8, w: '90%', fontSize: 24, bold: true, color: brandPurple });
         s.addText(`${ideaDetails.pressRelease.location} - ${ideaDetails.pressRelease.date}`, { x: 0.5, y: 2.3, w: '90%', fontSize: 12, italic: true, color: 'AAAAAA' });
         
         s.addText(ideaDetails.pressRelease.content, { x: 0.5, y: 2.6, w: '90%', h: 4.0, fontSize: 12, color: 'DDDDDD', valign: 'top' });
@@ -855,7 +855,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     // Title
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.text("Exact Idea Processor - Plan", margin, yPos);
+    doc.text("Idea Processor - Plan", margin, yPos);
     yPos += 15;
 
     // Context
@@ -1235,7 +1235,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         console.error("Error saving PDF to DB:", e);
     }
 
-    doc.save(`Exact_Idea_${selectedIdea.name.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`Idea_${selectedIdea.name.replace(/\s+/g, '_')}.pdf`);
   };
   
   const handleExportCSV = () => {
@@ -1471,13 +1471,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   };
 
   return (
-    <div className="h-screen bg-exact-dark text-white font-sans flex flex-col overflow-hidden relative">
+    <div className="h-screen bg-brand-dark text-white font-sans flex flex-col overflow-hidden relative">
       
       {/* --- COUNTDOWN OVERLAY --- */}
       {isClosing && (
         <div className="absolute inset-0 z-[200] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
            <h2 className="text-4xl text-gray-500 font-mono tracking-widest mb-4">CLOSING SESSION</h2>
-           <div className={`text-[15rem] leading-none font-black text-exact-red transition-all duration-75 ${closingCountdown <= 3 ? 'animate-pulse' : ''}`}>
+           <div className={`text-[15rem] leading-none font-black text-brand-primary transition-all duration-75 ${closingCountdown <= 3 ? 'animate-pulse' : ''}`}>
              {closingCountdown}
            </div>
            <p className="mt-8 text-xl text-white">Saving data & Initializing AI...</p>
@@ -1485,10 +1485,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       )}
 
       {/* Admin Navbar */}
-      <nav className="bg-exact-panel border-b border-white/10 px-6 h-16 flex-shrink-0 flex items-center justify-between">
+      <nav className="bg-brand-panel border-b border-white/10 px-6 h-16 flex-shrink-0 flex items-center justify-between">
         <div className="flex items-center space-x-4">
              <span className="font-sans font-black text-xl tracking-tighter">
-                <span className="text-exact-red text-2xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-400 font-light">{TEXTS.APP_NAME.SUFFIX}</span>
+                <span className="text-brand-primary text-2xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-400 font-light">{TEXTS.APP_NAME.SUFFIX}</span>
                 <span className="text-gray-600 text-xs ml-2 font-mono">{TEXTS.APP_NAME.VERSION}</span>
               </span>
              {sessionCode && (
@@ -1548,7 +1548,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     {/* Settings Card */}
                     <button 
                         onClick={() => setShowSettings(true)}
-                        className="group bg-exact-panel border border-white/10 p-10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all text-left flex flex-col"
+                        className="group bg-brand-panel border border-white/10 p-10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all text-left flex flex-col"
                     >
                         <div className="p-4 bg-white/5 rounded-full w-fit mb-6 group-hover:scale-110 transition-transform">
                             <Settings className="w-10 h-10 text-gray-400 group-hover:text-white" />
@@ -1560,10 +1560,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     {/* Start Session Card */}
                     <button 
                         onClick={() => setPhase('SETUP')}
-                        className="group bg-exact-panel border border-white/10 p-10 rounded-lg hover:border-exact-red/50 hover:bg-exact-red/5 transition-all text-left flex flex-col"
+                        className="group bg-exact-panel border border-white/10 p-10 rounded-lg hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all text-left flex flex-col"
                     >
-                        <div className="p-4 bg-exact-red/10 rounded-full w-fit mb-6 group-hover:scale-110 transition-transform">
-                            <Play className="w-10 h-10 text-exact-red" />
+                        <div className="p-4 bg-brand-primary/10 rounded-full w-fit mb-6 group-hover:scale-110 transition-transform">
+                            <Play className="w-10 h-10 text-brand-primary" />
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">{TEXTS.ADMIN_DASHBOARD.HUB.BTN_START}</h3>
                         <p className="text-gray-400">{TEXTS.ADMIN_DASHBOARD.HUB.DESC_START}</p>
@@ -1595,7 +1595,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     </button>
                     
                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center flex-shrink-0">
-                        <FileIcon className="mr-3 text-exact-red" />
+                        <FileIcon className="mr-3 text-brand-primary" />
                         Opgeslagen Rapportages
                     </h2>
 
@@ -1641,7 +1641,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
               >
                   <X size={20} />
               </button>
-              <div className="flex items-center mb-6 text-exact-red">
+              <div className="flex items-center mb-6 text-brand-primary">
                 <Brain className="w-8 h-8 mr-3" />
                 <h2 className="text-2xl font-bold text-white">{TEXTS.ADMIN_DASHBOARD.SETUP.TITLE}</h2>
               </div>
@@ -1652,7 +1652,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                   <textarea 
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
-                    className="w-full bg-black/50 border border-white/20 rounded-md p-4 text-xl text-white focus:border-exact-red focus:outline-none min-h-[120px]"
+                    className="w-full bg-black/50 border border-white/20 rounded-md p-4 text-xl text-white focus:border-brand-primary focus:outline-none min-h-[120px]"
                     placeholder={TEXTS.ADMIN_DASHBOARD.SETUP.PLACEHOLDER}
                   />
                 </div>
@@ -1737,14 +1737,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
              {/* Right: Stats & Logs */}
              <div className="flex flex-col gap-6 h-auto xl:h-full min-h-0">
                 <div className="grid grid-cols-2 gap-4 flex-shrink-0">
-                    <div className="bg-exact-panel border border-white/10 p-6 rounded-lg">
+                    <div className="bg-brand-panel border border-white/10 p-6 rounded-lg">
                         <div className="flex items-center text-gray-400 mb-2">
                             <Users className="w-4 h-4 mr-2" />
                             <span className="text-xs font-mono uppercase">{TEXTS.ADMIN_DASHBOARD.LIVE.PARTICIPANTS}</span>
                         </div>
                         <div className="text-4xl font-black">{Math.floor(ideas.length * 1.5)}</div>
                     </div>
-                    <div className="bg-exact-panel border border-white/10 p-6 rounded-lg">
+                    <div className="bg-brand-panel border border-white/10 p-6 rounded-lg">
                         <div className="flex items-center text-gray-400 mb-2">
                             <Activity className="w-4 h-4 mr-2" />
                             <span className="text-xs font-mono uppercase">{TEXTS.ADMIN_DASHBOARD.LIVE.IDEAS}</span>
@@ -1862,9 +1862,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
                         {/* Future Headline & Keywords */}
                         <div className="md:col-span-2 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-lg p-8 flex flex-col justify-center relative overflow-hidden h-[280px]">
-                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-exact-red/10 rounded-full blur-3xl"></div>
+                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-primary/10 rounded-full blur-3xl"></div>
                             
-                            <div className="flex items-center space-x-2 text-exact-red font-mono text-xs mb-4">
+                            <div className="flex items-center space-x-2 text-brand-primary font-mono text-xs mb-4">
                                 <Zap className="w-4 h-4" />
                                 <span>FUTURE INSIGHT GENERATED</span>
                             </div>
@@ -2003,10 +2003,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             <div className="flex h-full animate-in zoom-in-95 duration-500 overflow-hidden">
                 <div className="flex flex-col flex-1 overflow-hidden min-w-0 relative">
                 {/* Header */}
-                <div className="flex-shrink-0 bg-exact-panel border border-white/20 p-6 rounded-lg mb-4 shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-exact-red/10 rounded-bl-full -mr-8 -mt-8"></div>
+                <div className="flex-shrink-0 bg-brand-panel border border-white/20 p-6 rounded-lg mb-4 shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 rounded-bl-full -mr-8 -mt-8"></div>
                     <div className="relative z-10">
-                        <div className="flex items-center text-exact-red mb-2 font-mono text-sm uppercase tracking-widest">
+                        <div className="flex items-center text-brand-primary mb-2 font-mono text-sm uppercase tracking-widest">
                             <Check className="w-4 h-4 mr-2" /> Selected Idea
                         </div>
                         <h2 className="text-3xl font-black text-white mb-2">{selectedIdea.name}</h2>

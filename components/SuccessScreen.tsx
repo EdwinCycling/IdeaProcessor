@@ -17,7 +17,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-exact-dark z-50 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
+    <div className="fixed inset-0 bg-brand-dark z-50 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
       
       {/* Fireworks Elements */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -29,7 +29,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
       {/* Floating moving items */}
       <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-neon-purple/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-exact-red/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-brand-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="relative z-10 p-8 text-center max-w-md w-full">
@@ -47,7 +47,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
         <div className="space-y-4">
           <button
               onClick={onClose}
-              className="w-full py-4 bg-white text-exact-dark font-black rounded-sm transition-all uppercase tracking-widest hover:bg-gray-200 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+              className="w-full py-4 bg-white text-brand-dark font-black rounded-sm transition-all uppercase tracking-widest hover:bg-gray-200 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]"
           >
               {TEXTS.SUCCESS.BTN_CLOSE}
           </button>

@@ -42,7 +42,7 @@ const Footer: React.FC = () => {
               {TEXTS.MODALS.CONTACT.DESC}
             </p>
             <div className="bg-white/5 p-4 rounded border border-white/10 font-mono text-sm">
-              <p className="text-exact-red font-bold">{TEXTS.MODALS.CONTACT.NAME}</p>
+              <p className="text-brand-primary font-bold">{TEXTS.MODALS.CONTACT.NAME}</p>
               <p className="text-gray-400">{TEXTS.MODALS.CONTACT.ROLE}</p>
               <p className="mt-2 text-white">{TEXTS.MODALS.CONTACT.EMAIL}</p>
             </div>
@@ -60,7 +60,7 @@ const Footer: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0">
               <span className="font-sans font-black text-xl tracking-tighter text-white">
-                  <span className="text-exact-red text-2xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-500 font-light">{TEXTS.APP_NAME.SUFFIX}</span>
+                  <span className="text-brand-primary text-2xl">{TEXTS.APP_NAME.PREFIX}</span> {TEXTS.APP_NAME.MAIN} <span className="text-gray-500 font-light">{TEXTS.APP_NAME.SUFFIX}</span>
                 </span>
               <p className="text-gray-600 text-xs mt-2 font-mono">
                   {TEXTS.FOOTER.COPYRIGHT}
@@ -80,7 +80,7 @@ const Footer: React.FC = () => {
       {/* Modal Overlay */}
       {modalType && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setModalType(null)}>
-          <div className="bg-exact-panel border border-white/20 rounded-lg max-w-lg w-full p-6 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-brand-panel border border-white/20 rounded-lg max-w-lg w-full p-6 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
             <button 
               onClick={() => setModalType(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-white"

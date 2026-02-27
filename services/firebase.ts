@@ -46,4 +46,4 @@ export const COLLECTIONS = {
 };
 
 // Default Session ID for this event - Legacy/Default
-export const CURRENT_SESSION_ID = 'exact-live-event';
+export const CURRENT_SESSION_ID = 'idea-live-event';

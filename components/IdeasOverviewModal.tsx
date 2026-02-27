@@ -38,10 +38,10 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-exact-panel border border-white/20 rounded-lg max-w-5xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-brand-panel border border-white/20 rounded-lg max-w-5xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         
         {/* Fixed Header */}
-        <div className="flex-shrink-0 bg-exact-panel border-b border-white/10 p-6 relative">
+        <div className="flex-shrink-0 bg-brand-panel border-b border-white/10 p-6 relative">
           <button 
             onClick={onClose}
             className="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors"
@@ -50,7 +50,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
           </button>
           
           <div className="pr-12">
-            <div className="flex items-center text-exact-red text-xs font-mono uppercase tracking-widest mb-2">
+            <div className="flex items-center text-brand-primary text-xs font-mono uppercase tracking-widest mb-2">
               <Calendar className="w-3 h-3 mr-2" />
               {today}
             </div>
@@ -78,7 +78,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
                     <span className="text-[10px] font-mono text-gray-500 bg-white/5 px-2 py-1 rounded">
                       {new Date(idea.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-xs font-bold text-exact-red opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs font-bold text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
                       IDEE #{idea.id.slice(-4).toUpperCase()}
                     </span>
                   </div>
@@ -93,7 +93,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
                       onSelectIdea(idea);
                       onClose();
                     }}
-                    className="w-full py-3 bg-exact-red hover:bg-red-700 text-white text-xs font-bold rounded flex items-center justify-center transition-all uppercase tracking-widest"
+                    className="w-full py-3 bg-brand-primary hover:opacity-90 text-white text-xs font-bold rounded flex items-center justify-center transition-all uppercase tracking-widest"
                   >
                     <Check className="w-4 h-4 mr-2" />
                     Selecteer voor Analyse

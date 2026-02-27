@@ -161,8 +161,8 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
   if (isCheckingSession) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-        <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl flex flex-col items-center">
-          <Loader className="w-12 h-12 text-exact-red animate-spin mb-4" />
+        <div className="bg-brand-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl flex flex-col items-center">
+          <Loader className="w-12 h-12 text-brand-primary animate-spin mb-4" />
           <p className="text-white font-medium">Sessie controleren...</p>
         </div>
       </div>
@@ -172,9 +172,9 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
   if (hasActiveSession === false) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-        <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative text-center">
+        <div className="bg-brand-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative text-center">
           <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-            <AlertCircle className="w-8 h-8 text-exact-red" />
+            <AlertCircle className="w-8 h-8 text-brand-primary" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
           <p className="text-gray-400 mb-8">
@@ -182,7 +182,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
           </p>
           <button
             onClick={onClose}
-            className="w-full px-4 py-3 bg-exact-red text-white font-bold rounded-sm hover:bg-red-700 transition-all shadow-[0_0_15px_rgba(225,0,0,0.3)]"
+            className="w-full px-4 py-3 bg-brand-primary text-white font-bold rounded-sm hover:opacity-90 transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)]"
           >
             {TEXTS.MODALS.ACCESS.CLOSE}
           </button>
@@ -193,7 +193,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative">
+      <div className="bg-brand-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
@@ -204,11 +204,14 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
 
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-            <Lock className="w-8 h-8 text-exact-red" />
+            <Lock className="w-8 h-8 text-brand-primary" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.TITLE}</h2>
           <p className="text-gray-400 text-sm">
             {TEXTS.MODALS.ACCESS.DESC}
+          </p>
+          <p className="text-brand-primary text-[10px] font-bold uppercase mt-2 tracking-widest animate-pulse">
+            VOLSTREKT ANONIEM
           </p>
         </div>
 
@@ -224,10 +227,10 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
               }}
               placeholder={blockedUntil ? `GEBLOKKEERD (${timeRemaining}s)` : TEXTS.MODALS.ACCESS.PLACEHOLDER}
               disabled={!!blockedUntil}
-              className={`w-full bg-black/50 border ${error ? 'border-exact-red animate-pulse' : 'border-white/20'} rounded-sm px-4 py-4 text-center text-2xl tracking-widest font-mono text-white focus:outline-none focus:border-exact-red transition-all placeholder:text-gray-700 uppercase ${blockedUntil ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full bg-black/50 border ${error ? 'border-brand-primary animate-pulse' : 'border-white/20'} rounded-sm px-4 py-4 text-center text-2xl tracking-widest font-mono text-white focus:outline-none focus:border-brand-primary transition-all placeholder:text-gray-700 uppercase ${blockedUntil ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
-            {error && !blockedUntil && <p className="text-exact-red text-xs text-center mt-2">{TEXTS.MODALS.ACCESS.ERROR}</p>}
-            {blockedUntil && <p className="text-exact-red text-xs text-center mt-2">Te veel pogingen. Wacht {timeRemaining} seconden.</p>}
+            {error && !blockedUntil && <p className="text-brand-primary text-xs text-center mt-2">{TEXTS.MODALS.ACCESS.ERROR}</p>}
+            {blockedUntil && <p className="text-brand-primary text-xs text-center mt-2">Te veel pogingen. Wacht {timeRemaining} seconden.</p>}
           </div>
 
           <div className="flex gap-3">
@@ -244,7 +247,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
               tabIndex={2}
               className={`flex-1 px-4 py-3 font-bold rounded-sm transition-all flex items-center justify-center ${
                 isValid 
-                  ? 'bg-exact-red text-white hover:bg-red-700 shadow-[0_0_15px_rgba(225,0,0,0.3)]' 
+                  ? 'bg-brand-primary text-white hover:opacity-90 shadow-[0_0_15px_rgba(168,85,247,0.3)]' 
                   : 'bg-white/10 text-gray-500 cursor-not-allowed'
               }`}
             >

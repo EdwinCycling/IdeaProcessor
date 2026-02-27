@@ -21,14 +21,14 @@ service cloud.firestore {
     match /sessions/{sessionId} {
       allow read: if true;
       // Allow write if user is owner (sessionId is their UID) OR if it's the legacy global session (for backward compat if needed by admin)
-      allow write: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
+      allow write: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'idea-live-event');
 
       // Ideas collection within a session:
       // - Read: Owner only
       // - Create: Public (but with validation)
       // - Update/Delete: Owner only
       match /ideas/{ideaId} {
-        allow read: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
+        allow read: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'idea-live-event');
         allow create: if 
           // Session must be active
           get(/databases/$(database)/documents/sessions/$(sessionId)).data.isActive == true &&
@@ -43,13 +43,13 @@ service cloud.firestore {
           // Timestamp must be a number
           request.resource.data.timestamp is number;
         
-        allow update, delete: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
+        allow update, delete: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'idea-live-event');
       }
 
       // Reports collection (PDFs):
       // - Read/Write: Owner only
       match /reports/{reportId} {
-        allow read, write: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'exact-live-event');
+        allow read, write: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'idea-live-event');
       }
     }
   }

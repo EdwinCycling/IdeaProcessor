@@ -23,7 +23,7 @@ type Role = 'PRODUCT_MANAGER' | 'INVESTOR' | 'SALES';
 const ROLES: { id: Role; label: string; description: string; color: string }[] = [
   { id: 'PRODUCT_MANAGER', label: 'Professor Product Manager', description: 'Focus op uitvoering & roadmap', color: 'text-neon-cyan' },
   { id: 'INVESTOR', label: 'Professor Investor', description: 'Focus op ROI & Business Model', color: 'text-neon-green' },
-  { id: 'SALES', label: 'Professor Sales', description: 'Focus op Kansen & Pitch', color: 'text-exact-red' }
+  { id: 'SALES', label: 'Professor Sales', description: 'Focus op Kansen & Pitch', color: 'text-brand-primary' }
 ];
 
 const ChatAssistant: React.FC<ChatAssistantProps> = ({ 
@@ -340,7 +340,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                         onClick={() => handleRoleChange(role.id)}
                         className={`flex-1 py-2 px-1 text-xs font-bold rounded-md transition-all text-center whitespace-nowrap overflow-hidden text-ellipsis ${
                             currentRole === role.id 
-                            ? 'bg-exact-red text-white shadow-lg' 
+                            ? 'bg-brand-primary text-white shadow-lg' 
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                         title={role.description}
@@ -355,14 +355,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-exact-dark/50">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-brand-dark/50">
           {messages.map((msg) => (
             <div 
                 key={msg.id} 
                 className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
             >
                 <div className={`flex items-center space-x-2 mb-1 ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-gray-600' : 'bg-exact-red'}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-gray-600' : 'bg-brand-primary'}`}>
                         {msg.role === 'user' ? <User size={12} /> : <Bot size={12} />}
                     </div>
                     <span className="text-xs text-gray-400">
@@ -398,7 +398,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
           
           {isLoading && (
             <div className="flex items-start space-x-2">
-                <div className="w-6 h-6 rounded-full bg-exact-red flex items-center justify-center animate-pulse">
+                <div className="w-6 h-6 rounded-full bg-brand-primary flex items-center justify-center animate-pulse">
                     <Bot size={12} />
                 </div>
                 <div className="bg-white/5 p-3 rounded-lg rounded-tl-none">
@@ -414,13 +414,13 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-exact-panel border-t border-white/10 flex-shrink-0">
+        <div className="p-4 bg-brand-panel border-t border-white/10 flex-shrink-0">
            {/* Suggestions */}
            {!isLoading && (
                <div className="flex mb-3 overflow-x-auto space-x-2 pb-2 scrollbar-hide">
                    <button 
                     onClick={handleGenerateFollowUp}
-                    className="flex items-center whitespace-nowrap px-3 py-1.5 bg-neon-purple/10 border border-neon-purple/30 hover:bg-neon-purple/20 text-neon-purple text-xs rounded-full transition-colors"
+                    className="flex items-center whitespace-nowrap px-3 py-1.5 bg-brand-primary/10 border border-brand-primary/30 hover:bg-brand-primary/20 text-brand-primary text-xs rounded-full transition-colors"
                    >
                        <Sparkles className="w-3 h-3 mr-1" />
                        Genereer vervolgvraag
@@ -435,13 +435,13 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Stel een vraag aan de professor..."
-                className="w-full bg-black/30 border border-white/10 rounded-lg pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-exact-red focus:ring-1 focus:ring-exact-red transition-all"
+                className="w-full bg-black/30 border border-white/10 rounded-lg pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
                 disabled={isLoading}
               />
               <button 
                 onClick={() => handleSendMessage()}
                 disabled={isLoading || !inputValue.trim()}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-exact-red text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand-primary text-white rounded hover:bg-brand-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Send className="w-4 h-4" />
               </button>

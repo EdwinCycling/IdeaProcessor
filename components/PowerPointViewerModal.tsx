@@ -95,7 +95,7 @@ const PowerPointViewerModal: React.FC<PowerPointViewerModalProps> = ({ isOpen, o
       {/* Controls Header (hidden in fullscreen unless hovered, but kept simple for now) */}
       <div className={`absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-50 transition-opacity duration-300 ${isFullscreen ? 'opacity-0 hover:opacity-100 bg-gradient-to-b from-black/80 to-transparent' : ''}`}>
         <div className="text-white font-bold flex items-center">
-            <Play className="w-5 h-5 text-exact-red mr-2" />
+            <Play className="w-5 h-5 text-brand-primary mr-2" />
             <span className="opacity-80">{ideaName}</span>
             <span className="mx-2 text-gray-500">/</span>
             <span className="text-sm text-gray-400">Slide {currentSlideIndex + 1} van {slides.length}</span>
@@ -121,9 +121,12 @@ const PowerPointViewerModal: React.FC<PowerPointViewerModalProps> = ({ isOpen, o
       {/* Slide Content Area */}
       <div className="relative w-full max-w-6xl aspect-video bg-white text-black shadow-2xl overflow-hidden flex flex-col">
         {/* Slide Master Background Elements */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-exact-red"></div>
+        <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary z-20"></div>
+        <div className="absolute top-6 left-10 text-[10px] font-mono text-gray-600 tracking-widest uppercase">
+          Idea Processor // AI GENERATED
+        </div>
         <div className="absolute bottom-4 left-8 right-8 h-px bg-gray-200"></div>
-        <div className="absolute bottom-1 right-8 text-[10px] text-gray-400 font-sans">EXACT IDEA PROCESSOR</div>
+        <div className="absolute bottom-1 right-8 text-[10px] text-gray-400 font-sans">IDEA PROCESSOR</div>
 
         {/* Slide Content */}
         <div className="flex-1 p-12 flex flex-col relative z-10">

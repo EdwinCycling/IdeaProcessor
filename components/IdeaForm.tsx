@@ -51,7 +51,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
     }
   }, []);
 
-  const isValid = name.trim().length > 0 && idea.trim().length >= MIN_IDEA_LENGTH && isSessionActive;
+  const isValid = idea.trim().length >= MIN_IDEA_LENGTH && isSessionActive;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,9 +94,12 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
         return;
       }
 
+      // Generate anonymous name if empty
+      const finalName = name.trim() || `gebruiker${Math.floor(Math.random() * 10000)}`;
+
       // Write to Firestore
       await addDoc(collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS), {
-        name: name.trim(),
+        name: finalName,
         content: idea.trim(),
         timestamp: Date.now()
       });
@@ -121,9 +124,9 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
   if (!isLoadingSession && !isSessionActive) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-        <div className="bg-exact-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative text-center">
+        <div className="bg-brand-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl relative text-center">
           <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-            <AlertCircle className="w-8 h-8 text-exact-red" />
+            <AlertCircle className="w-8 h-8 text-brand-primary" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
           <p className="text-gray-400 mb-8">
@@ -131,7 +134,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
           </p>
           <button
             onClick={onCancel}
-            className="w-full px-4 py-3 bg-exact-red text-white font-bold rounded-sm hover:bg-red-700 transition-all shadow-[0_0_15px_rgba(225,0,0,0.3)]"
+            className="w-full px-4 py-3 bg-brand-primary text-white font-bold rounded-sm hover:opacity-90 transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)]"
           >
             {TEXTS.MODALS.ACCESS.CLOSE}
           </button>
@@ -141,7 +144,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
   }
 
   return (
-    <div className="h-screen bg-exact-dark flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden">
+    <div className="h-screen bg-brand-dark flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden">
       <ConfirmationModal
         isOpen={alertState.open}
         onClose={() => setAlertState({ ...alertState, open: false })}
@@ -152,7 +155,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
         variant="warning"
       />
       {/* Header */}
-      <div className="bg-exact-panel p-3 border-b border-white/10 flex items-center flex-shrink-0">
+      <div className="bg-brand-panel p-3 border-b border-white/10 flex items-center flex-shrink-0">
         <button onClick={onCancel} className="p-2 -ml-2 text-gray-400 hover:text-white" tabIndex={5}>
           <ArrowLeft size={20} />
         </button>
@@ -164,7 +167,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
         {/* Context / Question Display - Sticky top of content - ONLY show if active */}
         {sessionContext && isSessionActive && (
            <div className="mb-4 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-4 rounded-lg shadow-sm flex-shrink-0">
-              <h3 className="text-xs font-bold text-exact-red uppercase tracking-wider mb-1 flex items-center">
+              <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-1 flex items-center">
                 <Clock className="w-3 h-3 mr-1" /> Vraag van vandaag
               </h3>
               <p className="text-white font-medium text-lg leading-snug italic">"{sessionContext}"</p>
@@ -175,7 +178,10 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 space-y-4">
           <div className="flex-shrink-0">
-            <label className="block text-xs font-bold text-gray-400 mb-1">{TEXTS.FORM.LABEL_NAME}</label>
+            <div className="flex justify-between items-end mb-1">
+                <label className="block text-xs font-bold text-gray-400">{TEXTS.FORM.LABEL_NAME}</label>
+                <span className="text-[10px] text-gray-500 italic font-medium">{TEXTS.FORM.NICKNAME_NOTE}</span>
+            </div>
             <input
               ref={nameInputRef}
               type="text"
@@ -183,8 +189,8 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
               tabIndex={1}
               maxLength={MAX_NAME_LENGTH}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-white/5 border border-neon-green/50 rounded-sm px-3 py-2 text-white focus:outline-none focus:border-neon-green focus:bg-white/10 transition-all text-sm shadow-[0_0_10px_rgba(57,255,20,0.1)]"
-              placeholder={TEXTS.FORM.PLACEHOLDER_NAME}
+              className="w-full bg-white/5 border border-brand-primary/30 rounded-sm px-3 py-2 text-white focus:outline-none focus:border-brand-primary focus:bg-white/10 transition-all text-sm shadow-[0_0_10px_rgba(168,85,247,0.1)]"
+              placeholder=""
             />
           </div>
 
@@ -197,10 +203,10 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
               onChange={(e) => setIdea(e.target.value)}
               className={`flex-1 w-full bg-white/5 border rounded-sm px-3 py-3 text-white focus:outline-none focus:bg-white/10 transition-all resize-none text-base leading-relaxed ${
                 isSessionActive 
-                  ? 'border-neon-green focus:border-neon-green shadow-[0_0_15px_rgba(57,255,20,0.2)]' 
-                  : 'border-exact-red/50 focus:border-exact-red shadow-[0_0_15px_rgba(255,0,0,0.1)] opacity-70 cursor-not-allowed'
+                  ? 'border-brand-primary focus:border-brand-primary shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
+                  : 'border-brand-primary/50 focus:border-brand-primary shadow-[0_0_15px_rgba(168,85,247,0.1)] opacity-70 cursor-not-allowed'
               }`}
-              placeholder={isSessionActive ? TEXTS.FORM.PLACEHOLDER_IDEA : "Wacht tot de sessie start om uw idee in te voeren..."}
+              placeholder=""
             />
             <div className="text-right text-xs text-gray-500 mt-1 flex-shrink-0">
                 {idea.length}/{MAX_IDEA_LENGTH}
@@ -213,7 +219,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
               disabled={!isValid || isSubmitting}
               className={`w-full py-3 text-base font-bold rounded-sm transition-all flex items-center justify-center ${
                 isValid && !isSubmitting
-                  ? 'bg-white text-exact-dark hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
+                  ? 'bg-white text-brand-dark hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
                   : 'bg-white/10 text-gray-500 cursor-not-allowed'
               }`}
             >

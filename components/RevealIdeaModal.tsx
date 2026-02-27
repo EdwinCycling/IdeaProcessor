@@ -83,7 +83,7 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 overflow-hidden">
             {/* Background Effects */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className={`absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-exact-red/10 via-transparent to-transparent ${!showContent ? 'animate-spin-slow' : ''}`}></div>
+                <div className={`absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent ${!showContent ? 'animate-spin-slow' : ''}`}></div>
             </div>
 
             {/* Content Container */}

@@ -63,10 +63,10 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-exact-panel border border-white/20 rounded-lg max-w-6xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-brand-panel border border-white/20 rounded-lg max-w-6xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         
         {/* Fixed Header */}
-        <div className="flex-shrink-0 bg-exact-panel border-b border-white/10 p-6 relative">
+        <div className="flex-shrink-0 bg-brand-panel border-b border-white/10 p-6 relative">
           <button 
             onClick={onClose}
             className="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors"
@@ -75,7 +75,7 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
           </button>
           
           <div className="pr-12">
-            <div className="flex items-center text-exact-red text-xs font-mono uppercase tracking-widest mb-2">
+            <div className="flex items-center text-brand-primary text-xs font-mono uppercase tracking-widest mb-2">
               <Calendar className="w-3 h-3 mr-2" />
               {today}
             </div>
