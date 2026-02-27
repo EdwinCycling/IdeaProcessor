@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, X, ArrowRight, Loader, AlertCircle } from 'lucide-react';
-import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot, limit, getDocs } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
 import { TEXTS } from '../constants/texts';
 
@@ -23,30 +23,36 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const checkActiveSessions = async () => {
-      if (!db) {
-        setHasActiveSession(false);
+    if (!db) {
+      setHasActiveSession(false);
+      setIsCheckingSession(false);
+      return;
+    }
+    
+    setIsCheckingSession(true);
+    
+    // Use real-time listener to check for active sessions
+    // This is more robust as it will update if the admin starts the session while the modal is open
+    const sessionsRef = collection(db, COLLECTIONS.SESSIONS);
+    const q = query(sessionsRef, where("isActive", "==", true), limit(1));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasActiveSession(!snapshot.empty);
+      setIsCheckingSession(false);
+    }, (err) => {
+      console.error("Error listening to active sessions:", err);
+      // Fallback: check the default session directly if collection query fails
+      getDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID)).then(snap => {
+        if (snap.exists()) {
+          setHasActiveSession(snap.data().isActive === true);
+        } else {
+          setHasActiveSession(false);
+        }
         setIsCheckingSession(false);
-        return;
-      }
-      
-      setIsCheckingSession(true);
-      try {
-        const sessionsRef = collection(db, COLLECTIONS.SESSIONS);
-        const q = query(sessionsRef, where("isActive", "==", true), limit(1));
-        const querySnapshot = await getDocs(q);
-        
-        setHasActiveSession(!querySnapshot.empty);
-      } catch (err) {
-        console.error("Error checking active sessions:", err);
-        // Fallback to false to prevent unauthorized access if check fails
-        setHasActiveSession(false);
-      } finally {
-        setIsCheckingSession(false);
-      }
-    };
+      });
+    });
 
-    checkActiveSessions();
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {

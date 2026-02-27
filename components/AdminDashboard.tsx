@@ -1705,7 +1705,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <div className="text-center">
                     <div className="bg-white p-3 sm:p-4 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-4 sm:mb-6 mx-auto inline-block">
                         <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://ideaprocessor.netlify.app/`)}`}
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/?code=${sessionCode}`)}`}
                             alt="Scan QR" 
                             className="w-44 h-44 sm:w-56 sm:h-56 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain"
                         />
