@@ -31,23 +31,25 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
     
     setIsCheckingSession(true);
     
-    // Use real-time listener to check for active sessions
-    // This is more robust as it will update if the admin starts the session while the modal is open
-    const sessionsRef = collection(db, COLLECTIONS.SESSIONS);
-    const q = query(sessionsRef, where("isActive", "==", true), limit(1));
+    // Listen directly to the default session document
+    // This is more efficient and reliable than querying the whole collection
+    const sessionRef = doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID);
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setHasActiveSession(!snapshot.empty);
+    const unsubscribe = onSnapshot(sessionRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setHasActiveSession(data.isActive === true);
+      } else {
+        setHasActiveSession(false);
+      }
       setIsCheckingSession(false);
     }, (err) => {
-      console.error("Error listening to active sessions:", err);
-      // Fallback: check the default session directly if collection query fails
-      getDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID)).then(snap => {
-        if (snap.exists()) {
-          setHasActiveSession(snap.data().isActive === true);
-        } else {
-          setHasActiveSession(false);
-        }
+      console.error("Error listening to session:", err);
+      // Fallback: check any active session if direct doc fails
+      const sessionsRef = collection(db, COLLECTIONS.SESSIONS);
+      const q = query(sessionsRef, where("isActive", "==", true), limit(1));
+      getDocs(q).then(snap => {
+        setHasActiveSession(!snap.empty);
         setIsCheckingSession(false);
       });
     });
@@ -99,17 +101,6 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
     const trimmedCode = code.trim().toUpperCase();
 
     try {
-        // Re-check session activity on submit for extra security
-        const sessionsRef = collection(db!, COLLECTIONS.SESSIONS);
-        const q = query(sessionsRef, where("isActive", "==", true), limit(1));
-        const activeSnap = await getDocs(q);
-        
-        if (activeSnap.empty) {
-            setHasActiveSession(false);
-            setIsChecking(false);
-            return;
-        }
-
         let foundSessionId: string | null = null;
         
         // 1. Check Global Code (Legacy/Default)
@@ -139,8 +130,6 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
                     // Session exists but is not active
                     setError(true);
                     setIsChecking(false);
-                    // Custom error message for closed session could be added here
-                    // For now, use the default error but maybe a more specific one
                     return;
                 }
             }

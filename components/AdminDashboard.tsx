@@ -204,12 +204,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   // Load settings from Firestore on mount
   useEffect(() => {
     const loadSettings = async () => {
-      if (!db) return;
+      if (!db) {
+        console.warn("Firestore not available in AdminDashboard");
+        return;
+      }
       try {
+        console.log("Loading session settings for ID:", sessionId);
         const sessionRef = doc(db, COLLECTIONS.SESSIONS, sessionId);
         const sessionSnap = await getDoc(sessionRef);
         if (sessionSnap.exists()) {
           const data = sessionSnap.data();
+          console.log("Session data loaded:", data);
           if (data.accessCode) {
             onUpdateAccessCode(data.accessCode);
             setTempAccessCode(data.accessCode);
@@ -220,9 +225,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
           if (data.defaultContext) {
             setDefaultContext(data.defaultContext);
           }
+        } else {
+          console.log("No existing session document found for ID:", sessionId);
         }
       } catch (err) {
-        console.error("Error loading settings:", err);
+        console.error("Error loading settings from Firestore:", err);
       }
     };
     loadSettings();
@@ -427,6 +434,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     if (!context.trim()) return;
     
     setIsStarting(true);
+    setStartProgress(10);
     
     // Clear local state
     setIdeas([]);
@@ -438,18 +446,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     
     if (db) {
       try {
+        console.log("Starting session in Firestore for ID:", sessionId);
+        
         // 1. Clear existing ideas from Firestore (Clean Slate) FIRST
-        const ideasRef = collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, COLLECTIONS.IDEAS);
+        const ideasRef = collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS);
         const snapshot = await getDocs(ideasRef);
         const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(deletePromises);
+        setStartProgress(50);
 
         // 2. Save session status to Firestore
-        await setDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
+        await setDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
           isActive: true,
           context: context, // Save the context so users can see it
           updatedAt: Date.now()
         }, { merge: true });
+
+        console.log("Session successfully started in Firestore");
 
         // Small delay to show 100% progress
         setStartProgress(100);
@@ -458,13 +471,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
           setPhase('LIVE');
         }, 500);
       } catch (err) {
-        console.error("Error starting session:", err);
+        console.error("CRITICAL ERROR starting session in Firestore:", err);
         setIsStarting(false);
-        // Fallback: start anyway if cleanup fails, but warn
-        setPhase('LIVE');
+        alert("Fout bij het starten van de sessie in de database. Controleer je internetverbinding of Firebase instellingen.");
       }
     } else {
-        // Mock mode
+        console.warn("Database not available, using mock mode");
         setStartProgress(100);
         setTimeout(() => {
           setIsStarting(false);
@@ -498,7 +510,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const confirmCancelSession = async () => {
        if (db) {
           try {
-              await setDoc(doc(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID), {
+              await setDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
               isActive: false,
               updatedAt: Date.now()
               }, { merge: true });

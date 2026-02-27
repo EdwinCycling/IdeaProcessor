@@ -16,10 +16,11 @@ service cloud.firestore {
     }
 
     // Session document:
-    // - Read: Public (needed to check if session is active and get context)
+    // - Read: Public
     // - Write: Owner only
     match /sessions/{sessionId} {
       allow read: if true;
+      allow list: if true;
       // Allow write if user is owner (sessionId is their UID) OR if it's the legacy global session (for backward compat if needed by admin)
       allow write: if request.auth != null && (request.auth.uid == sessionId || sessionId == 'idea-live-event');
 
