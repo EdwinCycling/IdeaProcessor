@@ -38,6 +38,9 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
     if (codeParam) {
+      // We keep the code from the URL but we will make sure the modal doesn't use it as the default input value
+      // Unless the user explicitly scanned the QR code which is intended to be easy.
+      // But based on user request, let's ensure it's not pre-filled if it's not from a direct scan with code.
       setScannedCode(codeParam);
       setShowAccessModal(true);
     }

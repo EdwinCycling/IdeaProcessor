@@ -12,7 +12,8 @@ interface AccessModalProps {
 }
 
 const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode, initialCode = '' }) => {
-  const [code, setCode] = useState(initialCode);
+  // Always start with an empty code field as per user request, even if initialCode is provided
+  const [code, setCode] = useState('');
   const [error, setError] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
