@@ -2323,7 +2323,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                          <div className="flex items-center mb-3">
                                              <div className="w-8 h-8 bg-gray-300 rounded-full mr-2"></div>
                                              <div>
-                                                 <div className="font-bold text-xs">Exact Life</div>
+                                                 <div className="font-bold text-xs">InnovateIQ Life</div>
                                                  <div className="text-[10px] text-gray-500">Just now • 🌐</div>
                                              </div>
                                          </div>
