@@ -87,16 +87,16 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
             </div>
 
             {/* Content Container */}
-            <div className="relative z-10 max-w-5xl w-full p-8 text-center max-h-[50vh] overflow-y-auto scrollbar-hide">
+            <div className="relative z-10 max-w-5xl w-full p-4 md:p-8 text-center max-h-[90vh] overflow-y-auto scrollbar-hide">
                 
                 {/* COUNTDOWN PHASE */}
                 {!showContent && (
-                    <div className="flex flex-col items-center justify-center min-h-[50vh] mt-[-10vh]">
-                        <h2 className="text-3xl md:text-5xl font-black text-white mb-12 tracking-wider uppercase animate-pulse">
+                    <div className="flex flex-col items-center justify-center min-h-[50vh]">
+                        <h2 className="text-2xl md:text-4xl font-black text-white mb-8 tracking-wider uppercase animate-pulse">
                             Onthulling Top Idee
                         </h2>
-                        <div className="relative">
-                            <div className="text-[15rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-br from-neon-cyan via-white to-neon-purple drop-shadow-[0_0_50px_rgba(255,255,255,0.5)] scale-150 transition-all duration-300 transform">
+                        <div className="relative scale-75 md:scale-100">
+                            <div className="text-[12rem] md:text-[15rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-br from-neon-cyan via-white to-neon-purple drop-shadow-[0_0_50px_rgba(255,255,255,0.5)] transition-all duration-300 transform">
                                 {count}
                             </div>
                         </div>
@@ -105,51 +105,51 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
 
                 {/* REVEAL PHASE */}
                 {showContent && (
-                    <div className="flex flex-col items-center animate-in zoom-in-50 duration-700 slide-in-from-bottom-10">
+                    <div className="flex flex-col items-center animate-in zoom-in-50 duration-700 slide-in-from-bottom-10 py-4">
                         {/* 1. Context / Question */}
-                        <div className="mb-12 max-w-3xl mx-auto">
-                            <div className="text-exact-red font-mono text-sm uppercase tracking-[0.2em] mb-4 flex items-center justify-center">
-                                <PartyPopper className="w-5 h-5 mr-2" />
+                        <div className="mb-6 md:mb-10 max-w-3xl mx-auto">
+                            <div className="text-brand-primary font-mono text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 flex items-center justify-center">
+                                <PartyPopper className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                                 De Uitdaging
                             </div>
-                            <h3 className="text-2xl md:text-3xl font-bold text-gray-300 leading-relaxed italic">
+                            <h3 className="text-lg md:text-2xl font-bold text-gray-300 leading-relaxed italic line-clamp-3">
                                 "{context}"
                             </h3>
                         </div>
 
                         {/* 2. User Name */}
-                        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
-                            <div className="inline-flex items-center px-6 py-3 bg-white/10 rounded-full border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                                <User className="w-6 h-6 mr-3 text-neon-cyan" />
-                                <span className="text-xl font-mono text-neon-cyan tracking-wider uppercase font-bold">
+                        <div className="mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+                            <div className="inline-flex items-center px-4 py-2 md:px-6 md:py-3 bg-white/10 rounded-full border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                <User className="w-4 h-4 md:w-6 md:h-6 mr-2 md:mr-3 text-neon-cyan" />
+                                <span className="text-base md:text-xl font-mono text-neon-cyan tracking-wider uppercase font-bold">
                                     {idea.name}
                                 </span>
                             </div>
                         </div>
 
                         {/* 3. The Idea */}
-                <div className="mb-12 relative animate-in fade-in zoom-in-90 duration-700 delay-500 fill-mode-both">
-                    <div className="absolute -top-10 -left-10 text-white/5">
+                <div className="mb-8 md:mb-12 relative animate-in fade-in zoom-in-90 duration-700 delay-500 fill-mode-both w-full">
+                    <div className="absolute -top-6 -left-6 md:-top-10 md:-left-10 text-white/5 scale-50 md:scale-100">
                         <Quote size={120} />
                     </div>
-                    <div className="relative bg-gradient-to-br from-white/10 to-transparent border border-white/20 p-10 md:p-14 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-sm max-w-4xl mx-auto">
-                        <p className="text-3xl md:text-5xl font-black text-white leading-tight">
+                    <div className="relative bg-gradient-to-br from-white/10 to-transparent border border-white/20 p-6 md:p-14 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-sm max-w-4xl mx-auto">
+                        <p className="text-xl md:text-4xl font-black text-white leading-tight line-clamp-4">
                             "{idea.content}"
                         </p>
                     </div>
-                    <div className="absolute -bottom-10 -right-10 text-white/5 rotate-180">
+                    <div className="absolute -bottom-6 -right-6 md:-bottom-10 md:-right-10 text-white/5 rotate-180 scale-50 md:scale-100">
                         <Quote size={120} />
                     </div>
                 </div>
 
                 {/* 4. Action Button */}
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-1000 fill-mode-both pb-8">
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-1000 fill-mode-both pb-4">
                     <button
                         onClick={onConfirm}
-                        className="group relative px-10 py-6 bg-neon-green text-black font-black text-xl md:text-2xl uppercase tracking-widest rounded-lg hover:bg-green-400 transition-all shadow-[0_0_30px_rgba(34,197,94,0.4)] hover:shadow-[0_0_50px_rgba(34,197,94,0.6)] hover:scale-105 active:scale-95"
+                        className="group relative px-6 py-4 md:px-10 md:py-6 bg-neon-green text-black font-black text-lg md:text-2xl uppercase tracking-widest rounded-lg hover:bg-green-400 transition-all shadow-[0_0_30px_rgba(34,197,94,0.4)] hover:shadow-[0_0_50px_rgba(34,197,94,0.6)] hover:scale-105 active:scale-95"
                     >
                         <span className="flex items-center">
-                            <Check className="w-8 h-8 mr-3 stroke-[3]" />
+                            <Check className="w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3 stroke-[3]" />
                             Kies Dit Idee
                         </span>
                     </button>

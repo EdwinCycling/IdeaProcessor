@@ -1813,34 +1813,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
           <div className="flex flex-col h-full animate-in slide-in-from-bottom-4 duration-500 overflow-y-auto">
             <div className="space-y-8 pb-8">
                 {/* Header Stats */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-6">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
                   <div>
-                    <h2 className="text-3xl font-black text-white mb-1">{TEXTS.ADMIN_DASHBOARD.ANALYSIS.TITLE}</h2>
-                    <p className="text-gray-400">Context: <span className="text-white italic">"{context}"</span></p>
+                    <h2 className="text-2xl font-black text-white mb-0.5">{TEXTS.ADMIN_DASHBOARD.ANALYSIS.TITLE}</h2>
+                    <p className="text-gray-400 text-sm italic">"{context}"</p>
                   </div>
                   <div className="text-right flex items-center gap-4">
                      <button
                         onClick={handleSaveSession}
-                        className="flex items-center text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                        className="flex items-center text-xs font-bold text-gray-400 hover:text-white transition-colors"
                      >
-                        <Save className="w-4 h-4 mr-2" />
+                        <Save className="w-3.5 h-3.5 mr-1.5" />
                         Opslaan
                      </button>
-                     <div>
-                         <span className="block text-3xl font-bold text-neon-cyan">{ideas.length}</span>
-                         <span className="text-xs text-gray-500 uppercase">{TEXTS.ADMIN_DASHBOARD.LIVE.IDEAS}</span>
+                     <div className="flex items-baseline gap-2">
+                         <span className="text-2xl font-bold text-neon-cyan">{ideas.length}</span>
+                         <span className="text-[10px] text-gray-500 uppercase tracking-wider">{TEXTS.ADMIN_DASHBOARD.LIVE.IDEAS}</span>
                      </div>
                   </div>
                 </div>
 
                 {/* Innovation Intelligence Display */}
                 {analysis && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Innovation Score Gauge */}
-                        <div className="bg-brand-panel border border-white/10 rounded-lg p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-brand-primary/30 transition-colors h-[280px]">
+                        <div className="bg-brand-panel border border-white/10 rounded-lg p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-brand-primary/30 transition-colors h-[220px]">
                             
-                            <div className="flex-1 flex items-center justify-center">
-                                <div className="relative w-40 h-40 flex items-center justify-center">
+                            <div className="flex-1 flex items-center justify-center scale-90">
+                                <div className="relative w-32 h-32 flex items-center justify-center">
                                     <svg viewBox="0 0 128 128" className="w-full h-full transform -rotate-90 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
                                         <circle
                                             cx="64"
@@ -1864,32 +1864,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         />
                                     </svg>
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                         <span className="text-5xl font-black">{animatedScore}</span>
+                                         <span className="text-4xl font-black">{animatedScore}</span>
                                     </div>
                                 </div>
                             </div>
                             
-                            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mt-4">Innovation Score</h3>
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-2">Innovation Score</h3>
                         </div>
 
                         {/* Future Headline & Keywords */}
-                        <div className="md:col-span-2 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-lg p-8 flex flex-col justify-center relative overflow-hidden h-[280px]">
+                        <div className="md:col-span-2 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-lg p-6 flex flex-col justify-center relative overflow-hidden h-[220px]">
                             <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-primary/10 rounded-full blur-3xl"></div>
                             
-                            <div className="flex items-center space-x-2 text-brand-primary font-mono text-xs mb-4">
-                                <Zap className="w-4 h-4" />
+                            <div className="flex items-center space-x-2 text-brand-primary font-mono text-[10px] mb-3">
+                                <Zap className="w-3.5 h-3.5" />
                                 <span>FUTURE INSIGHT GENERATED</span>
                             </div>
 
-                            <h2 className="text-2xl md:text-4xl font-black text-white leading-tight mb-6 italic">
+                            <h2 className="text-xl md:text-2xl font-black text-white leading-tight mb-4 italic line-clamp-2">
                                 "{analysis.headline}"
                             </h2>
 
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5">
                                 {analysis.keywords.map((keyword, idx) => (
                                     <span 
                                         key={idx} 
-                                        className="px-3 py-1 bg-white/10 border border-white/10 rounded-full text-sm font-mono text-neon-cyan animate-in zoom-in duration-500"
+                                        className="px-2 py-0.5 bg-white/10 border border-white/10 rounded-full text-[10px] font-mono text-neon-cyan animate-in zoom-in duration-500"
                                         style={{ animationDelay: `${idx * 100}ms` }}
                                     >
                                         #{keyword}
@@ -1901,23 +1901,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 )}
 
                 {/* Summary Section */}
-                <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-                  <div className="flex items-center mb-4">
-                    <Brain className="w-6 h-6 text-neon-purple mr-2" />
-                    <h3 className="text-xl font-bold text-white">{TEXTS.ADMIN_DASHBOARD.ANALYSIS.SUMMARY_TITLE}</h3>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                  <div className="flex items-center mb-2">
+                    <Brain className="w-5 h-5 text-neon-purple mr-2" />
+                    <h3 className="text-lg font-bold text-white">{TEXTS.ADMIN_DASHBOARD.ANALYSIS.SUMMARY_TITLE}</h3>
                   </div>
-                  <p className="text-gray-300 leading-relaxed text-lg">
+                  <p className="text-gray-300 leading-relaxed text-base line-clamp-3">
                     {analysis?.summary}
                   </p>
                 </div>
 
                 {/* Top Ideas Grid REPLACEMENT */}
                 <div>
-                   <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+                   <h3 className="text-lg font-bold text-white mb-4 flex items-center">
                      {hasRevealed ? "Geselecteerd Top Idee" : "Top Idee Onthulling"}
                    </h3>
                    
-                   <div className="flex flex-col md:flex-row gap-6">
+                   <div className="flex flex-col md:flex-row gap-4">
                       {/* 1. If REVEALED: Show the Idea Card First */}
                       {hasRevealed && revealedIdeaId && (() => {
                           const idea = analysis?.topIdeas.find(i => i.id === revealedIdeaId);
@@ -1925,18 +1925,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                           return (
                             <div 
                               key={idea.id}
-                              className="flex-1 p-8 rounded-lg border relative bg-brand-primary/10 border-brand-primary shadow-[0_0_20px_rgba(168,85,247,0.2)] animate-in fade-in slide-in-from-bottom-4 duration-500"
+                              className="flex-1 p-6 rounded-lg border relative bg-brand-primary/10 border-brand-primary shadow-[0_0_20px_rgba(168,85,247,0.2)] animate-in fade-in slide-in-from-bottom-4 duration-500"
                             >
-                              <div className="absolute top-4 right-4 text-brand-primary">
-                                <Check className="w-8 h-8" />
+                              <div className="absolute top-3 right-3 text-brand-primary scale-75">
+                                <Check className="w-6 h-6" />
                               </div>
-                              <div className="mb-6">
-                                <span className="text-sm font-mono text-gray-400">
+                              <div className="mb-4">
+                                <span className="text-[10px] font-mono text-gray-400">
                                     {new Date(idea.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
-                                <h4 className="text-2xl font-bold text-white mt-2">{idea.name}</h4>
+                                <h4 className="text-lg font-bold text-white mt-1">{idea.name}</h4>
                               </div>
-                              <p className="text-white text-xl leading-relaxed italic">
+                              <p className="text-white text-base leading-relaxed italic line-clamp-3">
                                 "{idea.content}"
                               </p>
                             </div>
@@ -1948,16 +1948,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                           onClick={handleStartReveal}
                           className={`
                               group relative overflow-hidden rounded-lg border border-dashed border-white/30 flex flex-col items-center justify-center text-center transition-all
-                              ${hasRevealed ? 'w-full md:w-1/3 bg-white/5 hover:bg-white/10 min-h-[200px]' : 'w-full bg-gradient-to-br from-white/5 to-white/10 hover:from-white/10 hover:to-white/20 min-h-[200px] lg:min-h-[400px]'}
+                              ${hasRevealed ? 'w-full md:w-1/3 bg-white/5 hover:bg-white/10 min-h-[140px]' : 'w-full bg-gradient-to-br from-white/5 to-white/10 hover:from-white/10 hover:to-white/20 min-h-[180px] lg:min-h-[220px]'}
                           `}
                       >
-                          <div className={`rounded-full mb-6 group-hover:scale-110 transition-transform ${hasRevealed ? 'p-3 bg-white/5' : 'p-6 bg-neon-cyan/20'}`}>
-                              <Sparkles className={`${hasRevealed ? 'w-6 h-6 text-gray-400' : 'w-12 h-12 text-neon-cyan'}`} />
+                          <div className={`rounded-full mb-3 group-hover:scale-110 transition-transform ${hasRevealed ? 'p-2 bg-white/5' : 'p-4 bg-neon-cyan/20'}`}>
+                              <Sparkles className={`${hasRevealed ? 'w-5 h-5 text-gray-400' : 'w-10 h-10 text-neon-cyan'}`} />
                           </div>
-                          <h3 className={`${hasRevealed ? 'text-lg' : 'text-3xl'} font-bold text-white mb-2`}>
+                          <h3 className={`${hasRevealed ? 'text-base' : 'text-2xl'} font-bold text-white mb-1`}>
                               {hasRevealed ? "Kies een ander idee" : "Onthul het Top Idee"}
                           </h3>
-                          <p className="text-gray-400 max-w-md px-4">
+                          <p className="text-[10px] text-gray-400 max-w-md px-4">
                               {hasRevealed ? "Start de onthulling opnieuw om een andere winnaar te kiezen." : "Start de spectaculaire onthulling van het beste idee uit deze sessie."}
                           </p>
                       </button>
@@ -1965,43 +1965,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 </div>
 
                 {/* Next Step Action */}
-                <div className="flex justify-between items-center pt-4">
-                  <div>
+                <div className="flex justify-between items-center pt-2">
+                  <div className="flex gap-3">
                     <button 
                       onClick={handleReset}
-                      className="px-6 py-4 bg-white/10 text-white hover:bg-white/20 font-bold rounded flex items-center transition-all border border-white/10"
+                      className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 font-bold text-sm rounded flex items-center transition-all border border-white/10"
                     >
-                      <RotateCcw className="mr-2 w-5 h-5" />
+                      <RotateCcw className="mr-1.5 w-4 h-4" />
                       {TEXTS.ADMIN_DASHBOARD.DETAIL.BTN_RESET}
+                    </button>
+                    <button 
+                      onClick={() => setShowOverview(true)}
+                      className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 font-bold text-sm rounded flex items-center transition-all border border-white/10"
+                    >
+                      <List className="mr-1.5 w-4 h-4" />
+                      Overzicht
                     </button>
                   </div>
 
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => setShowOverview(true)}
-                      className="px-6 py-4 bg-white/10 text-white hover:bg-white/20 font-bold rounded flex items-center transition-all border border-white/10"
-                    >
-                      <List className="mr-2 w-5 h-5" />
-                      Bekijk alle ideeën
-                    </button>
+                  <div className="flex gap-3">
                     <button 
                       onClick={handleClusterIdeas}
-                      className="px-6 py-4 bg-white/10 text-white hover:bg-white/20 font-bold rounded flex items-center transition-all border border-white/10 ml-4"
+                      className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 font-bold text-sm rounded flex items-center transition-all border border-white/10"
                     >
-                      <Sparkles className="mr-2 w-5 h-5 text-neon-purple" />
+                      <Sparkles className="mr-1.5 w-4 h-4 text-neon-purple" />
                       Samenvoegen
                     </button>
                     <button 
                       onClick={handleSelectIdea}
                       disabled={!selectedIdeaId}
-                      className={`px-8 py-4 font-bold rounded-md flex items-center transition-all ${
+                      className={`px-6 py-2 font-bold text-sm rounded flex items-center transition-all ${
                         selectedIdeaId 
                           ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20' 
                           : 'bg-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                     >
                       {TEXTS.ADMIN_DASHBOARD.ANALYSIS.BTN_NEXT}
-                      <ArrowRight className="ml-2 w-5 h-5" />
+                      <ArrowRight className="ml-1.5 w-4 h-4" />
                     </button>
                   </div>
                 </div>
