@@ -1220,7 +1220,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     try {
         if (db) {
             const pdfBase64 = doc.output('datauristring');
-            const fileName = `Exact_Idea_${selectedIdea.name.replace(/\s+/g, '_')}_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`;
+            const fileName = `Idea_${selectedIdea.name.replace(/\s+/g, '_')}_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`;
             
             await addDoc(collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, 'reports'), {
                 name: fileName,
@@ -1560,7 +1560,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     {/* Start Session Card */}
                     <button 
                         onClick={() => setPhase('SETUP')}
-                        className="group bg-exact-panel border border-white/10 p-10 rounded-lg hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all text-left flex flex-col"
+                        className="group bg-brand-panel border border-white/10 p-10 rounded-lg hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all text-left flex flex-col"
                     >
                         <div className="p-4 bg-brand-primary/10 rounded-full w-fit mb-6 group-hover:scale-110 transition-transform">
                             <Play className="w-10 h-10 text-brand-primary" />
@@ -1571,7 +1571,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     {/* Reports Card */}
                     <button 
                         onClick={() => setShowReports(true)}
-                        className="group bg-exact-panel border border-white/10 p-10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all text-left flex flex-col"
+                        className="group bg-brand-panel border border-white/10 p-10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all text-left flex flex-col"
                     >
                         <div className="p-4 bg-white/5 rounded-full w-fit mb-6 group-hover:scale-110 transition-transform">
                             <FileIcon className="w-10 h-10 text-gray-400 group-hover:text-white" />
@@ -1586,7 +1586,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         {/* Saved Reports Modal */}
         {showReports && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowReports(false)}>
-                <div className="bg-exact-panel border border-white/20 rounded-lg max-w-4xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+                <div className="bg-brand-panel border border-white/20 rounded-lg max-w-4xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
                     <button 
                         onClick={() => setShowReports(false)}
                         className="absolute top-6 right-6 text-gray-400 hover:text-white"
@@ -1634,7 +1634,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         {/* PHASE 1: SETUP */}
         {phase === 'SETUP' && (
           <div className="flex-1 flex items-center justify-center animate-in fade-in zoom-in duration-300 overflow-y-auto">
-            <div className="max-w-2xl w-full bg-exact-panel border border-white/10 rounded-lg p-10 shadow-2xl relative">
+            <div className="max-w-2xl w-full bg-brand-panel border border-white/10 rounded-lg p-10 shadow-2xl relative">
               <button 
                 onClick={() => setPhase('MENU')}
                 className="absolute top-4 right-4 text-gray-500 hover:text-white"
@@ -1715,7 +1715,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     <div className="flex flex-col gap-2 mb-5 sm:mb-8 items-center">
                          <p className="text-gray-400 text-sm uppercase tracking-widest font-bold">Event Code</p>
                          {sessionCode ? (
-                            <p className="text-exact-red font-mono text-4xl sm:text-5xl md:text-6xl font-black tracking-widest bg-white/10 px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-lg border-2 border-neon-green/50 shadow-[0_0_30px_rgba(57,255,20,0.2)]">
+                            <p className="text-brand-primary font-mono text-4xl sm:text-5xl md:text-6xl font-black tracking-widest bg-white/10 px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-lg border-2 border-neon-green/50 shadow-[0_0_30px_rgba(57,255,20,0.2)]">
                                 {sessionCode.toUpperCase()}
                             </p>
                          ) : (
@@ -1753,8 +1753,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     </div>
                 </div>
 
-                <div className="flex-1 bg-exact-panel border border-white/10 rounded-lg relative flex flex-col min-h-0">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-exact-red to-transparent opacity-20 z-10"></div>
+                <div className="flex-1 bg-brand-panel border border-white/10 rounded-lg relative flex flex-col min-h-0">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-primary to-transparent opacity-20 z-10"></div>
                     
                     <div className="p-6 pb-2 flex-shrink-0 flex justify-between items-center">
                          <h3 className="font-bold text-lg">{TEXTS.ADMIN_DASHBOARD.LIVE.LOG_TITLE}</h3>
@@ -1786,7 +1786,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     </button>
                     <button
                         onClick={handleCancelSession}
-                        className="w-24 py-6 text-xs font-bold rounded-lg shadow-lg bg-exact-red hover:bg-red-700 text-white shadow-red-900/20 flex flex-col items-center justify-center transition-all"
+                        className="w-24 py-6 text-xs font-bold rounded-lg shadow-lg bg-brand-primary hover:opacity-90 text-white shadow-purple-900/20 flex flex-col items-center justify-center transition-all"
                     >
                         <X className="w-5 h-5 mb-1" />
                         Annuleren
@@ -1825,7 +1825,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 {analysis && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Innovation Score Gauge */}
-                        <div className="bg-exact-panel border border-white/10 rounded-lg p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-exact-red/30 transition-colors h-[280px]">
+                        <div className="bg-brand-panel border border-white/10 rounded-lg p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-brand-primary/30 transition-colors h-[280px]">
                             
                             <div className="flex-1 flex items-center justify-center">
                                 <div className="relative w-40 h-40 flex items-center justify-center">
@@ -1843,7 +1843,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             cy="64"
                                             r="56"
                                             fill="transparent"
-                                            stroke={animatedScore > 80 ? "#0aff0a" : animatedScore > 50 ? "#00f3ff" : "#E10000"}
+                                            stroke={animatedScore > 80 ? "#0aff0a" : animatedScore > 50 ? "#00f3ff" : "#A855F7"}
                                             strokeWidth="8"
                                             strokeDasharray={351}
                                             strokeDashoffset={351 - (351 * animatedScore) / 100}
@@ -1913,9 +1913,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                           return (
                             <div 
                               key={idea.id}
-                              className="flex-1 p-8 rounded-lg border relative bg-exact-red/10 border-exact-red shadow-[0_0_20px_rgba(225,0,0,0.2)] animate-in fade-in slide-in-from-bottom-4 duration-500"
+                              className="flex-1 p-8 rounded-lg border relative bg-brand-primary/10 border-brand-primary shadow-[0_0_20px_rgba(168,85,247,0.2)] animate-in fade-in slide-in-from-bottom-4 duration-500"
                             >
-                              <div className="absolute top-4 right-4 text-exact-red">
+                              <div className="absolute top-4 right-4 text-brand-primary">
                                 <Check className="w-8 h-8" />
                               </div>
                               <div className="mb-6">
@@ -2018,7 +2018,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <div className="flex-shrink-0 flex flex-wrap gap-1 mb-4 border-b border-white/10">
                     <button 
                         onClick={() => setActiveTab('GENERAL')}
-                        className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'GENERAL' ? 'border-exact-red text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
+                        className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'GENERAL' ? 'border-brand-primary text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
                     >
                        <span className="flex items-center"><Brain className="w-4 h-4 mr-2" /> {TEXTS.ADMIN_DASHBOARD.DETAIL.TABS.GENERAL}</span>
                     </button>
@@ -2066,7 +2066,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     </button>
                     <button 
                         onClick={() => setActiveTab('POWERPOINT')}
-                        className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'POWERPOINT' ? 'border-exact-red text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
+                        className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'POWERPOINT' ? 'border-brand-primary text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
                     >
                        <span className="flex items-center"><Presentation className="w-4 h-4 mr-2" /> PowerPoint</span>
                     </button>
@@ -2195,16 +2195,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 </div>
                                 <p className="text-gray-400">{ideaDetails.businessCase?.financialImpact}</p>
                             </div>
-                            <div className="md:col-span-2 bg-exact-red/5 border border-exact-red/20 p-6 rounded-lg">
-                                <h4 className="text-exact-red font-mono text-xs uppercase mb-2">Risk Analysis</h4>
+                             <div className="md:col-span-2 bg-brand-primary/5 border border-brand-primary/20 p-6 rounded-lg">
+                                <h4 className="text-brand-primary font-mono text-xs uppercase mb-2">Risk Analysis</h4>
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-white font-bold text-lg">Risico's</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.risks?.join('\n') || '')} className="text-gray-400 hover:text-exact-red transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.risks?.join('\n') || '')} className="text-gray-400 hover:text-brand-primary transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <ul className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {ideaDetails.businessCase?.risks?.map((risk, idx) => (
                                         <li key={idx} className="flex items-start text-gray-300 text-sm">
-                                            <TrendingUp className="w-4 h-4 mr-2 text-exact-red flex-shrink-0 mt-1" />
+                                            <TrendingUp className="w-4 h-4 mr-2 text-brand-primary flex-shrink-0 mt-1" />
                                             {risk}
                                         </li>
                                     ))}
@@ -2393,7 +2393,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                         <div className="text-2xl font-black font-sans text-exact-red">EXACT</div>
+                                         <div className="text-2xl font-black font-sans text-brand-primary">IDEA</div>
                                          <div className="text-xs font-sans text-gray-500">Persrelaties</div>
                                     </div>
                                 </div>
@@ -2409,8 +2409,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 <div className="mt-10 pt-6 border-t border-gray-300 text-center text-sm text-gray-500 font-sans">
                                     ###
                                     <br/><br/>
-                                    <strong>Over Exact</strong><br/>
-                                    Exact ontwikkelt cloud software voor kleine en middelgrote bedrijven en hun accountants. De producten automatiseren bedrijfsprocessen zoals financiën en HR.
+                                    <strong>Over de Idea Processor</strong><br/>
+                                    De Idea Processor ontwikkelt cloud software voor kleine en middelgrote bedrijven en hun accountants. De producten automatiseren bedrijfsprocessen zoals financiën en HR.
                                 </div>
                              </div>
                             )}
@@ -2476,7 +2476,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         E
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold text-white">Exact Tech Blog</h3>
+                                        <h3 className="text-sm font-bold text-white">Idea Tech Blog</h3>
                                         <p className="text-xs text-gray-400">Innovatie & Technologie</p>
                                     </div>
                                 </div>
@@ -2565,7 +2565,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
                                 <div className="space-y-4">
                                     {ideaDetails.pptOutline.slides.map((slide, idx) => (
-                                        <div key={idx} className="bg-white/5 border border-white/10 p-6 rounded-lg group hover:bg-white/10 transition-colors">
+                                        <div key={idx} className="bg-brand-panel border border-white/10 p-6 rounded-lg group hover:bg-white/10 transition-colors">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex items-center w-full">
                                                     <span className="bg-white/10 text-gray-400 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">
@@ -2642,8 +2642,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                                 </div>
                                                 
                                                 {slide.speakerNotes && (
-                                                    <div className="bg-black/30 p-4 rounded text-sm text-gray-500 italic border-l-2 border-exact-red/50">
-                                                        <span className="text-exact-red font-bold not-italic mr-2">Speaker Notes:</span>
+                                                    <div className="bg-black/30 p-4 rounded text-sm text-gray-500 italic border-l-2 border-brand-primary/50">
+                                                        <span className="text-brand-primary font-bold not-italic mr-2">Speaker Notes:</span>
                                                         {slide.speakerNotes}
                                                     </div>
                                                 )}
@@ -2658,7 +2658,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 </div>
 
                 {/* Footer Actions */}
-                <div className="flex-shrink-0 border-t border-white/10 pt-4 pb-4 bg-exact-dark z-20 flex flex-nowrap overflow-x-auto gap-4 justify-between items-center sticky bottom-0 shadow-2xl">
+                <div className="flex-shrink-0 border-t border-white/10 pt-4 pb-4 bg-brand-dark z-20 flex flex-nowrap overflow-x-auto gap-4 justify-between items-center sticky bottom-0 shadow-2xl">
                      <div className="flex gap-4 flex-nowrap">
                         <button 
                             onClick={handleOpenFollowUpModal}
@@ -2693,7 +2693,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         </button>
                         <button 
                             onClick={handleReset}
-                            className="whitespace-nowrap px-6 py-3 bg-exact-red text-white hover:bg-red-700 font-bold rounded flex items-center transition-all"
+                            className="whitespace-nowrap px-6 py-3 bg-brand-primary text-white hover:opacity-90 font-bold rounded flex items-center transition-all"
                         >
                             <RotateCcw className="mr-2 w-4 h-4" />
                             {TEXTS.ADMIN_DASHBOARD.DETAIL.BTN_RESET}
@@ -2726,7 +2726,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
               <div className="relative w-24 h-24 mx-auto mb-8">
                 <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
                 <div 
-                  className="absolute inset-0 border-4 border-exact-red rounded-full animate-spin border-t-transparent"
+                  className="absolute inset-0 border-4 border-brand-primary rounded-full animate-spin border-t-transparent"
                   style={{ animationDuration: '1.5s' }}
                 ></div>
                 <div className="absolute inset-0 flex items-center justify-center font-mono text-xl font-bold text-white">
@@ -2744,7 +2744,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
               <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 shadow-inner">
                 <div 
-                  className="h-full bg-gradient-to-r from-exact-red to-red-500 transition-all duration-300 ease-out shadow-[0_0_15px_rgba(225,0,0,0.5)]"
+                  className="h-full bg-gradient-to-r from-brand-primary to-purple-500 transition-all duration-300 ease-out shadow-[0_0_15px_rgba(168,85,247,0.5)]"
                   style={{ width: `${generationProgress}%` }}
                 ></div>
               </div>
@@ -2784,7 +2784,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       {/* Follow-up Session Modal */}
       {showFollowUpModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-exact-panel border border-white/20 rounded-xl max-w-2xl w-full p-8 shadow-2xl relative overflow-hidden">
+            <div className="bg-brand-panel border border-white/20 rounded-xl max-w-2xl w-full p-8 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neon-green via-neon-cyan to-neon-purple"></div>
                 
                 <h2 className="text-3xl font-black text-white mb-6 flex items-center">
@@ -2866,7 +2866,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowSettings(false)}>
-            <div className="bg-exact-panel border border-white/20 rounded-lg max-w-lg w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-brand-panel border border-white/20 rounded-lg max-w-lg w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
                 <button 
                     onClick={() => setShowSettings(false)}
                     className="absolute top-6 right-6 text-gray-400 hover:text-white"
@@ -2875,7 +2875,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 </button>
                 
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                    <Settings className="mr-3 text-exact-red" />
+                    <Settings className="mr-3 text-brand-primary" />
                     {TEXTS.MODALS.SETTINGS.TITLE}
                 </h2>
 
@@ -2889,7 +2889,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                             type="text" 
                             value={tempAccessCode}
                             onChange={(e) => setTempAccessCode(e.target.value.toUpperCase())}
-                            className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-white font-mono tracking-wider focus:border-exact-red focus:outline-none"
+                            className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-white font-mono tracking-wider focus:border-brand-primary focus:outline-none"
                         />
                     </div>
                     
@@ -2901,7 +2901,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         <textarea 
                             value={defaultContext}
                             onChange={(e) => setDefaultContext(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-white focus:border-exact-red focus:outline-none min-h-[100px]"
+                            className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-white focus:border-brand-primary focus:outline-none min-h-[100px]"
                             placeholder={TEXTS.MODALS.SETTINGS.CONTEXT_PLACEHOLDER}
                         />
                     </div>
@@ -2910,7 +2910,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <div className="mt-8 flex justify-end">
                     <button 
                         onClick={handleSaveSettings}
-                        className="px-6 py-3 bg-exact-red text-white font-bold rounded hover:bg-red-700 transition-colors flex items-center"
+                        className="px-6 py-3 bg-brand-primary text-white font-bold rounded hover:opacity-90 transition-colors flex items-center"
                     >
                         <Save className="mr-2 w-4 h-4" /> {TEXTS.MODALS.SETTINGS.BTN_SAVE}
                     </button>
@@ -2922,7 +2922,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       {/* PBI Modal */}
       {showPBIModal && phase === 'DETAIL' && ideaDetails && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowPBIModal(false)}>
-            <div className="bg-exact-panel border border-white/20 rounded-lg max-w-4xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-brand-panel border border-white/20 rounded-lg max-w-4xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
                 <button 
                     onClick={() => setShowPBIModal(false)}
                     className="absolute top-6 right-6 text-gray-400 hover:text-white"
@@ -3050,7 +3050,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       {/* Load Session Modal */}
       {showLoadSessionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowLoadSessionModal(false)}>
-            <div className="bg-exact-panel border border-white/20 rounded-lg max-w-4xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-brand-panel border border-white/20 rounded-lg max-w-4xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
                 <button 
                     onClick={() => setShowLoadSessionModal(false)}
                     className="absolute top-6 right-6 text-gray-400 hover:text-white"
@@ -3059,7 +3059,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 </button>
                 
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center flex-shrink-0">
-                    <FolderOpen className="mr-3 text-exact-red" />
+                    <FolderOpen className="mr-3 text-brand-primary" />
                     Laad Eerdere Sessie
                 </h2>
 
