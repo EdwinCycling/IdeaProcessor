@@ -13,6 +13,7 @@ import IdeasOverviewModal from './IdeasOverviewModal';
 import ClusterIdeasModal from './ClusterIdeasModal';
 import RevealIdeaModal from './RevealIdeaModal';
 import PowerPointViewerModal from './PowerPointViewerModal';
+import Toast, { ToastVariant } from './Toast';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -172,6 +173,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const [isClosing, setIsClosing] = useState(false);
   const [closingCountdown, setClosingCountdown] = useState(10);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [toastState, setToastState] = useState<{ open: boolean; message: string; variant: ToastVariant }>({
+    open: false,
+    message: '',
+    variant: 'info'
+  });
+
+  const showToast = (message: string, variant: ToastVariant = 'info') => {
+    setToastState({ open: true, message, variant });
+  };
 
   // Scroll ref for log
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -451,6 +461,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     // Clear local state
     setIdeas([]);
     setAnalysis(null);
+    setClusters([]);
+    setShowClusterModal(false);
+    setIsClustering(false);
     setSessionDuration(0); // Reset timer
     setAnimatedScore(0);
     setHasRevealed(false);
@@ -791,6 +804,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       setSelectedIdeaId(null);
       setSelectedManualIdeaId(null);
       setIdeaDetails(null);
+      setClusters([]);
+      setShowClusterModal(false);
+      setIsClustering(false);
       setSessionDuration(0);
       setIsClosing(false);
       setAnimatedScore(0);
@@ -1412,6 +1428,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         // 2. Update session with new question and reset state
         await updateDoc(sessionRef, {
             question: followUpQuestion,
+            context: followUpQuestion,
+            defaultContext: followUpQuestion,
             isActive: true, // Make sure it's active again
             phase: 'LIVE',
             selectedIdeaId: null,
@@ -1429,6 +1447,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             setPhase('LIVE');
             setIdeas([]);
             setAnalysis(null);
+            setClusters([]);
+            setShowClusterModal(false);
+            setIsClustering(false);
             setAnimatedScore(0);
             setSelectedIdeaId(null);
             setIdeaDetails(null);
@@ -1457,10 +1478,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       };
 
       await addDoc(collection(db, COLLECTIONS.USERS, auth.currentUser.uid, COLLECTIONS.SAVED_SESSIONS), savedSession);
-      alert(texts.ADMIN_DASHBOARD.SESSION_ALERTS.SAVE_SUCCESS);
+      showToast(texts.ADMIN_DASHBOARD.SESSION_ALERTS.SAVE_SUCCESS, 'success');
     } catch (error) {
       console.error("Error saving session:", error);
-      alert(texts.ADMIN_DASHBOARD.SESSION_ALERTS.SAVE_ERROR);
+      showToast(texts.ADMIN_DASHBOARD.SESSION_ALERTS.SAVE_ERROR, 'error');
     }
   };
 
@@ -1523,6 +1544,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
   return (
     <div className="h-screen bg-brand-dark text-white font-sans flex flex-col overflow-hidden relative">
+      <Toast
+        isOpen={toastState.open}
+        message={toastState.message}
+        variant={toastState.variant}
+        onClose={() => setToastState(prev => ({ ...prev, open: false }))}
+      />
       
       {/* --- COUNTDOWN OVERLAY --- */}
       {isClosing && (

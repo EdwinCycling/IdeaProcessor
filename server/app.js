@@ -337,6 +337,9 @@ apiRouter.post('/generate-details', async (req, res, next) => {
 });
 
 apiRouter.post('/generate-blog', async (req, res, next) => {
+    if (!apiKey) {
+        return res.status(500).json({ error: "Server Error: API Key not configured" });
+    }
     const { context, idea, style, language } = req.body;
     if (!idea) return res.status(400).json({ error: "No idea provided" });
 
@@ -400,6 +403,9 @@ apiRouter.post('/generate-blog', async (req, res, next) => {
 });
 
 apiRouter.post('/generate-press-release', async (req, res, next) => {
+    if (!apiKey) {
+        return res.status(500).json({ error: "Server Error: API Key not configured" });
+    }
     const { context, idea, style, language } = req.body;
     if (!idea) return res.status(400).json({ error: "No idea provided" });
 
@@ -466,6 +472,9 @@ apiRouter.post('/generate-press-release', async (req, res, next) => {
 });
 
 apiRouter.post('/chat', async (req, res, next) => {
+    if (!apiKey) {
+        return res.status(500).json({ error: "Server Error: API Key not configured" });
+    }
     const { history, currentRole, context, idea, analysis, language } = req.body;
 
     try {
@@ -534,6 +543,9 @@ apiRouter.post('/chat', async (req, res, next) => {
 });
 
 apiRouter.post('/cluster-ideas', async (req, res, next) => {
+    if (!apiKey) {
+        return res.status(500).json({ error: "Server Error: API Key not configured" });
+    }
     const { context, ideas, language } = req.body;
 
     debugLog(`[CLUSTER-DEBUG] Received request to cluster ${ideas?.length || 0} ideas.`);
@@ -618,6 +630,9 @@ apiRouter.post('/cluster-ideas', async (req, res, next) => {
 });
 
 apiRouter.post('/generate-follow-up-question', async (req, res, _next) => {
+    if (!apiKey) {
+        return res.status(500).json({ error: "Server Error: API Key not configured" });
+    }
     const { context, idea, existingQuestions, language } = req.body;
     
     debugLog("Generating follow-up question for:", idea?.name);
@@ -699,6 +714,9 @@ apiRouter.get('/health', (req, res) => {
 });
 
 apiRouter.post('/generate-ppt', async (req, res, next) => {
+    if (!apiKey) {
+        return res.status(500).json({ error: "Server Error: API Key not configured" });
+    }
     const { context, idea, language } = req.body;
 
     if (!idea) {
