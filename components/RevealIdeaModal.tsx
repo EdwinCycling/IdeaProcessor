@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Idea } from '../types';
 import { Check, User, Quote, PartyPopper } from 'lucide-react';
+import { useTexts } from '../services/i18n';
 
 interface RevealIdeaModalProps {
     isOpen: boolean;
@@ -11,7 +12,8 @@ interface RevealIdeaModalProps {
     onConfirm: () => void;
 }
 
-const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea, context, onConfirm }) => {
+const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose: _onClose, idea, context, onConfirm }) => {
+    const texts = useTexts();
     const [count, setCount] = useState(5);
     const [showContent, setShowContent] = useState(false);
 
@@ -93,7 +95,7 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
                 {!showContent && (
                     <div className="flex flex-col items-center justify-center min-h-[50vh]">
                         <h2 className="text-2xl md:text-4xl font-black text-white mb-8 tracking-wider uppercase animate-pulse">
-                            Onthulling Top Idee
+                            {texts.REVEAL.TITLE}
                         </h2>
                         <div className="relative scale-75 md:scale-100">
                             <div className="text-[12rem] md:text-[15rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-br from-neon-cyan via-white to-neon-purple drop-shadow-[0_0_50px_rgba(255,255,255,0.5)] transition-all duration-300 transform">
@@ -110,7 +112,7 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
                         <div className="mb-6 md:mb-10 max-w-3xl mx-auto">
                             <div className="text-brand-primary font-mono text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 flex items-center justify-center">
                                 <PartyPopper className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                                De Uitdaging
+                                {texts.REVEAL.CHALLENGE}
                             </div>
                             <h3 className="text-lg md:text-2xl font-bold text-gray-300 leading-relaxed italic line-clamp-3">
                                 "{context}"
@@ -150,7 +152,7 @@ const RevealIdeaModal: React.FC<RevealIdeaModalProps> = ({ isOpen, onClose, idea
                     >
                         <span className="flex items-center">
                             <Check className="w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3 stroke-[3]" />
-                            Kies Dit Idee
+                            {texts.REVEAL.CONFIRM}
                         </span>
                     </button>
                 </div>

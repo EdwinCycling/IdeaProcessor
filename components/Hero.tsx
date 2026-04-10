@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, QrCode, Monitor } from 'lucide-react';
-import { TEXTS } from '../constants/texts';
+import { ArrowRight, Monitor } from 'lucide-react';
+import { useTexts } from '../services/i18n';
 
 interface HeroProps {
   onStart: () => void;
 }
 
 const Hero: React.FC<HeroProps> = ({ onStart }) => {
+  const texts = useTexts();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -34,15 +35,15 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
           <div className="text-left space-y-8">
             <div className="inline-flex items-center px-3 py-1 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan text-xs font-mono mb-4">
               <span className="w-2 h-2 rounded-full bg-neon-cyan mr-2 animate-pulse"></span>
-              {TEXTS.HERO.BADGE}
+              {texts.HERO.BADGE}
             </div>
             
             <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight text-white">
-              {TEXTS.HERO.TITLE_PREFIX} <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-purple-400 neon-text-glow">{TEXTS.HERO.TITLE_HIGHLIGHT}</span>.
+              {texts.HERO.TITLE_PREFIX} <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-purple-400 neon-text-glow">{texts.HERO.TITLE_HIGHLIGHT}</span>.
             </h1>
             
             <p className="text-xl text-gray-400 max-w-lg font-light">
-              {TEXTS.HERO.DESCRIPTION}
+              {texts.HERO.DESCRIPTION}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -50,7 +51,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
                 onClick={onStart}
                 className="group relative px-8 py-4 bg-brand-primary hover:opacity-90 text-white font-bold rounded-sm transition-all neon-glow flex items-center justify-center"
               >
-                {TEXTS.HERO.CTA_PRIMARY}
+                {texts.HERO.CTA_PRIMARY}
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
@@ -69,7 +70,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
                         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                         <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
-                    <span className="text-xs font-mono text-gray-500">AI_ANALYSIS_MODE</span>
+                    <span className="text-xs font-mono text-gray-500">{texts.HERO.AI_MODE}</span>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center space-y-4">
@@ -95,8 +96,8 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
                 <div className="h-full w-full bg-gray-900 rounded-[1.7rem] overflow-hidden relative">
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
                          <img src="/QR.jpg" alt="Scan QR" className="w-28 h-28 mb-3 rounded-lg border-2 border-white/20" />
-                         <div className="text-xs font-mono text-neon-cyan mb-1">SCAN TO JOIN</div>
-                         <div className="text-[10px] font-mono text-gray-500 mb-2">of ga naar:</div>
+                         <div className="text-xs font-mono text-neon-cyan mb-1">{texts.HERO.QR_SCAN}</div>
+                         <div className="text-[10px] font-mono text-gray-500 mb-2">{texts.HERO.OR_GO_TO}</div>
                          <a href="https://ideaprocessor.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-center text-white font-mono break-all px-2 hover:text-neon-cyan transition-colors bg-white/10 py-1 rounded border border-white/10 mb-2">
                            ideaprocessor.netlify.app
                          </a>

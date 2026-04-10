@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, Clock, AlertCircle } from 'lucide-react';
 import { collection, addDoc, doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
-import { TEXTS } from '../constants/texts';
+import { db, COLLECTIONS } from '../services/firebase';
 import ConfirmationModal from './ConfirmationModal';
+import { useLanguage, useTexts } from '../services/i18n';
 
 interface IdeaFormProps {
   onCancel: () => void;
@@ -12,6 +12,8 @@ interface IdeaFormProps {
 }
 
 const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) => {
+  const texts = useTexts();
+  const { translate } = useLanguage();
   const [name, setName] = useState('');
   const [idea, setIdea] = useState('');
   const [sessionContext, setSessionContext] = useState('');
@@ -59,8 +61,8 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
       if (!isSessionActive) {
         setAlertState({
           open: true,
-          title: 'Sessie Niet Actief',
-          message: 'De sessie is momenteel niet actief. Wacht tot de administrator de Idea Tank opent.'
+          title: texts.FORM.SESSION_NOT_ACTIVE_TITLE,
+          message: texts.FORM.SESSION_NOT_ACTIVE_MESSAGE
         });
       }
       return;
@@ -71,8 +73,8 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
     if (!db) {
       setAlertState({
         open: true,
-        title: 'Configuratie Fout',
-        message: 'Firebase is niet geconfigureerd. Controleer de .env instellingen.'
+        title: texts.FORM.CONFIG_ERROR_TITLE,
+        message: texts.FORM.CONFIG_ERROR_MESSAGE
       });
       setIsSubmitting(false);
       return;
@@ -86,8 +88,8 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
       if (!sessionSnap.exists() || sessionSnap.data().isActive !== true) {
         setAlertState({
           open: true,
-          title: 'Sessie Verlopen',
-          message: 'Deze sessie is zojuist gesloten door de administrator.'
+          title: texts.FORM.SESSION_EXPIRED_TITLE,
+          message: texts.FORM.SESSION_EXPIRED_MESSAGE
         });
         setIsSessionActive(false);
         setIsSubmitting(false);
@@ -95,7 +97,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
       }
 
       // Generate anonymous name if empty
-      const finalName = name.trim() || `gebruiker${Math.floor(Math.random() * 10000)}`;
+      const finalName = name.trim() || `${texts.FORM.DEFAULT_USER_PREFIX}${Math.floor(Math.random() * 10000)}`;
 
       // Write to Firestore
       await addDoc(collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS), {
@@ -115,8 +117,8 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
       setIsSubmitting(false);
       setAlertState({
         open: true,
-        title: 'Fout',
-        message: 'Er is iets misgegaan bij het versturen. Probeer het opnieuw.'
+        title: texts.FORM.SUBMIT_ERROR_TITLE,
+        message: texts.FORM.SUBMIT_ERROR_MESSAGE
       });
     }
   };
@@ -128,15 +130,15 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
           <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
             <AlertCircle className="w-8 h-8 text-brand-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">{texts.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
           <p className="text-gray-400 mb-8">
-            {TEXTS.MODALS.ACCESS.NO_SESSION_DESC}
+            {texts.MODALS.ACCESS.NO_SESSION_DESC}
           </p>
           <button
             onClick={onCancel}
             className="w-full px-4 py-3 bg-brand-primary text-white font-bold rounded-sm hover:opacity-90 transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)]"
           >
-            {TEXTS.MODALS.ACCESS.CLOSE}
+            {texts.MODALS.ACCESS.CLOSE}
           </button>
         </div>
       </div>
@@ -151,7 +153,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
         onConfirm={() => setAlertState({ ...alertState, open: false })}
         title={alertState.title}
         message={alertState.message}
-        confirmText="OK"
+        confirmText={texts.COMMON.OK}
         variant="warning"
       />
       {/* Header */}
@@ -159,7 +161,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
         <button onClick={onCancel} className="p-2 -ml-2 text-gray-400 hover:text-white" tabIndex={5}>
           <ArrowLeft size={20} />
         </button>
-        <h1 className="ml-2 font-bold text-base text-white">{TEXTS.FORM.TITLE}</h1>
+        <h1 className="ml-2 font-bold text-base text-white">{texts.FORM.TITLE}</h1>
       </div>
 
       <div className="flex-1 p-4 max-w-lg mx-auto w-full flex flex-col h-full overflow-hidden">
@@ -168,7 +170,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
         {sessionContext && isSessionActive && (
            <div className="mb-4 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-4 rounded-lg shadow-sm flex-shrink-0">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-1 flex items-center">
-                <Clock className="w-3 h-3 mr-1" /> Vraag van vandaag
+                <Clock className="w-3 h-3 mr-1" /> {texts.FORM.TODAY_QUESTION}
               </h3>
               <p className="text-white font-medium text-lg leading-snug italic">"{sessionContext}"</p>
            </div>
@@ -179,8 +181,8 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 space-y-4">
           <div className="flex-shrink-0">
             <div className="flex justify-between items-end mb-1">
-                <label className="block text-xs font-bold text-gray-400">{TEXTS.FORM.LABEL_NAME}</label>
-                <span className="text-[10px] text-gray-500 italic font-medium">{TEXTS.FORM.NICKNAME_NOTE}</span>
+                <label className="block text-xs font-bold text-gray-400">{texts.FORM.LABEL_NAME}</label>
+                <span className="text-[10px] text-gray-500 italic font-medium">{texts.FORM.NICKNAME_NOTE}</span>
             </div>
             <input
               ref={nameInputRef}
@@ -195,7 +197,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
           </div>
 
           <div className="flex-1 flex flex-col min-h-0">
-            <label className="block text-xs font-bold text-gray-400 mb-1">{TEXTS.FORM.LABEL_IDEA}</label>
+            <label className="block text-xs font-bold text-gray-400 mb-1">{texts.FORM.LABEL_IDEA}</label>
             <textarea
               value={idea}
               maxLength={MAX_IDEA_LENGTH}
@@ -224,12 +226,12 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
               }`}
             >
               {isSubmitting ? (
-                <span className="animate-pulse">{TEXTS.FORM.BTN_SENDING}</span>
+                <span className="animate-pulse">{texts.FORM.BTN_SENDING}</span>
               ) : cooldown > 0 ? (
-                <span>Even geduld ({cooldown}s)...</span>
+                <span>{translate(texts.FORM.COOLDOWN, { seconds: cooldown })}</span>
               ) : (
                 <>
-                  {TEXTS.FORM.BTN_SUBMIT} <Send className="ml-2 w-4 h-4" />
+                  {texts.FORM.BTN_SUBMIT} <Send className="ml-2 w-4 h-4" />
                 </>
               )}
             </button>
@@ -240,7 +242,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onCancel, onSubmit, sessionId }) =>
                 tabIndex={4}
                 className="w-full py-2 text-gray-500 font-medium text-xs hover:text-white transition-colors"
             >
-                {TEXTS.FORM.BTN_CANCEL}
+                {texts.FORM.BTN_CANCEL}
             </button>
           </div>
         </form>

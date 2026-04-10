@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import { Idea, IdeaDetails, ChatMessage } from '../types';
 import { chatWithIdeaProfessor } from '../services/ai';
 import ConfirmationModal from './ConfirmationModal';
+import { useLanguage, useTexts } from '../services/i18n';
 
 interface ChatAssistantProps {
   idea: Idea;
@@ -20,12 +21,6 @@ interface ChatAssistantProps {
 
 type Role = 'PRODUCT_MANAGER' | 'INVESTOR' | 'SALES';
 
-const ROLES: { id: Role; label: string; description: string; color: string }[] = [
-  { id: 'PRODUCT_MANAGER', label: 'Professor Product Manager', description: 'Focus op uitvoering & roadmap', color: 'text-neon-cyan' },
-  { id: 'INVESTOR', label: 'Professor Investor', description: 'Focus op ROI & Business Model', color: 'text-neon-green' },
-  { id: 'SALES', label: 'Professor Sales', description: 'Focus op Kansen & Pitch', color: 'text-brand-primary' }
-];
-
 const ChatAssistant: React.FC<ChatAssistantProps> = ({ 
   idea, 
   analysis, 
@@ -38,6 +33,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   onClearPastedText,
   onMessagesChange
 }) => {
+  const texts = useTexts();
+  const { translate } = useLanguage();
   const [currentRole, setCurrentRole] = useState<Role>('PRODUCT_MANAGER');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -47,20 +44,32 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
   const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
 
+  const roleTexts = {
+    PRODUCT_MANAGER: texts.CHAT.ROLES.PRODUCT_MANAGER,
+    INVESTOR: texts.CHAT.ROLES.INVESTOR,
+    SALES: texts.CHAT.ROLES.SALES,
+  } as const;
+
+  const roles = [
+    { id: 'PRODUCT_MANAGER' as const, label: roleTexts.PRODUCT_MANAGER.LABEL, description: roleTexts.PRODUCT_MANAGER.DESCRIPTION, color: 'text-neon-cyan' },
+    { id: 'INVESTOR' as const, label: roleTexts.INVESTOR.LABEL, description: roleTexts.INVESTOR.DESCRIPTION, color: 'text-neon-green' },
+    { id: 'SALES' as const, label: roleTexts.SALES.LABEL, description: roleTexts.SALES.DESCRIPTION, color: 'text-brand-primary' }
+  ];
+
   // Initialize chat with default context
   useEffect(() => {
     if (messages.length === 0) {
-      const activeRole = ROLES.find(r => r.id === currentRole);
+      const activeRole = roles.find(r => r.id === currentRole);
       const initialMessage: ChatMessage = {
         id: 'init',
         role: 'assistant',
-        content: `Hallo! Ik ben jouw **Idea Professor**. \n\nIk heb het idee van **"${idea.name}"** geanalyseerd. \n\nIk sta momenteel ingesteld als **${activeRole?.label}**. \n\nStel me een vraag, of laat me een vervolgvraag bedenken!`,
+        content: translate(texts.CHAT.INIT_MESSAGE, { idea: idea.name, role: activeRole?.label || '' }),
         timestamp: Date.now(),
-        roleLabel: 'System'
+        roleLabel: texts.CHAT.SYSTEM
       };
       setMessages([initialMessage]);
     }
-  }, [idea.name, currentRole]);
+  }, [idea.name, currentRole, texts, translate]);
 
   // Handle pasted text
   useEffect(() => {
@@ -145,7 +154,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
         role: 'assistant',
         content: cleanContent,
         timestamp: Date.now(),
-        roleLabel: ROLES.find(r => r.id === currentRole)?.label,
+        roleLabel: roles.find(r => r.id === currentRole)?.label,
         suggestedFollowUp
       };
 
@@ -155,9 +164,9 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "Sorry, ik kon geen verbinding maken. Probeer het opnieuw.",
+        content: texts.CHAT.CONNECTION_ERROR,
         timestamp: Date.now(),
-        roleLabel: 'System'
+        roleLabel: texts.CHAT.SYSTEM
       };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
@@ -177,7 +186,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
       // Add the hidden instruction to generate a question
       apiHistory.push({ 
         role: 'user', 
-        content: "Bedenk een kritische of inspirerende vervolgvraag die ik (als gebruiker) aan jou zou kunnen stellen over dit idee. Geef ALLEEN de vraag terug, zonder introductie of quotes. Zorg dat de vraag kort en krachtig is." 
+        content: texts.CHAT.FOLLOW_UP_PROMPT 
       });
 
       const generatedQuestion = await chatWithIdeaProfessor(apiHistory, currentRole, context, idea, analysis);
@@ -198,14 +207,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
     if (currentRole === newRole) return;
     
     setCurrentRole(newRole);
-    const roleInfo = ROLES.find(r => r.id === newRole);
+    const roleInfo = roles.find(r => r.id === newRole);
     
     const systemMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: `🔄 **Rol Gewijzigd**: Ik spreek nu als **${roleInfo?.label}**. \n_${roleInfo?.description}_`,
+      content: `🔄 **${texts.CHAT.ROLE_CHANGED}**: ${roleInfo?.label}\n_${roleInfo?.description}_`,
       timestamp: Date.now(),
-      roleLabel: 'System'
+      roleLabel: texts.CHAT.SYSTEM
     };
     setMessages(prev => [...prev, systemMsg]);
   };
@@ -215,13 +224,13 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   };
 
   const confirmClearHistory = () => {
-    const activeRole = ROLES.find(r => r.id === currentRole);
+    const activeRole = roles.find(r => r.id === currentRole);
     setMessages([{
       id: 'init',
       role: 'assistant',
-      content: `Geschiedenis gewist. Klaar voor een nieuwe start met **"${idea.name}"** als **${activeRole?.label}**.`,
+      content: translate(texts.CHAT.RESET_MESSAGE, { idea: idea.name, role: activeRole?.label || '' }),
       timestamp: Date.now(),
-      roleLabel: 'System'
+      roleLabel: texts.CHAT.SYSTEM
     }]);
     setShowClearHistoryModal(false);
   };
@@ -235,7 +244,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text(`Idea Professor Chat Log - ${idea.name}`, 10, 10);
+    doc.text(`${texts.CHAT.PDF_TITLE} - ${idea.name}`, 10, 10);
     doc.setFontSize(10);
     let y = 20;
     
@@ -244,7 +253,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
         doc.addPage();
         y = 10;
       }
-      const role = msg.roleLabel || (msg.role === 'user' ? 'User' : 'AI');
+      const role = msg.roleLabel || (msg.role === 'user' ? texts.CHAT.PDF_USER : texts.CHAT.PDF_AI);
       doc.setFont("helvetica", "bold");
       doc.text(`${role} (${new Date(msg.timestamp).toLocaleTimeString()}):`, 10, y);
       y += 5;
@@ -274,12 +283,12 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
         <button
           onClick={onToggle}
           className="fixed bottom-32 right-8 z-50 bg-neon-green text-black p-4 rounded-full shadow-lg shadow-neon-green/20 hover:scale-110 transition-transform animate-in zoom-in duration-300 group"
-          title="Open Idea Professor"
+          title={texts.CHAT.OPEN_TITLE}
         >
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping"></div>
           <MessageSquare className="w-6 h-6" />
           <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-black/80 text-white px-3 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-             Chat met Professor
+             {texts.CHAT.OPEN_TOOLTIP}
           </span>
         </button>
       )}
@@ -293,11 +302,21 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
             isOpen={showClearHistoryModal}
             onClose={() => setShowClearHistoryModal(false)}
             onConfirm={confirmClearHistory}
-            title="Geschiedenis Wissen"
-            message="Weet je zeker dat je de volledige chatgeschiedenis van deze sessie wilt wissen?"
-            confirmText="Wissen"
-            cancelText="Annuleren"
+            title={texts.CHAT.CLEAR_HISTORY_TITLE}
+            message={texts.CHAT.CLEAR_HISTORY_MESSAGE}
+            confirmText={texts.CHAT.CLEAR}
+            cancelText={texts.COMMON.CANCEL}
             variant="danger"
+          />
+          <ConfirmationModal
+            isOpen={showCopySuccessModal}
+            onClose={() => setShowCopySuccessModal(false)}
+            onConfirm={() => setShowCopySuccessModal(false)}
+            title={texts.CHAT.COPY_SUCCESS_TITLE}
+            message={texts.CHAT.COPY_SUCCESS_MESSAGE}
+            confirmText={texts.COMMON.OK}
+            cancelText=""
+            variant="info"
           />
 
           {/* Resize Handle */}
@@ -313,15 +332,29 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                    <Bot className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                   <h3 className="font-bold text-white">Idea Professor</h3>
-                   <p className="text-xs text-gray-400">AI-simulatie van mogelijke antwoorden op basis van context.</p>
+                   <h3 className="font-bold text-white">{texts.CHAT.PANEL_TITLE}</h3>
+                   <p className="text-xs text-gray-400">{texts.CHAT.PANEL_DESC}</p>
                 </div>
              </div>
              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleCopyHistory}
+                  className="text-gray-400 hover:text-brand-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                  title={texts.COMMON.COPY}
+                >
+                  <Copy className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleClearHistory}
+                  className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-white/5"
+                  title={texts.CHAT.CLEAR_HISTORY_TITLE}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
                 <button 
                   onClick={handleDownloadPDF} 
                   className="text-gray-400 hover:text-neon-green transition-colors p-2 rounded-lg hover:bg-white/5"
-                  title="Download Chatgeschiedenis"
+                  title={texts.CHAT.DOWNLOAD_HISTORY}
                 >
                   <Download className="w-5 h-5" />
                 </button>
@@ -334,7 +367,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
         {/* Role Selector */}
         <div className="p-3 bg-black/20 border-b border-white/5 flex-shrink-0">
             <div className="flex space-x-1 bg-white/5 p-1 rounded-lg">
-                {ROLES.map(role => (
+                {roles.map(role => (
                     <button
                         key={role.id}
                         onClick={() => handleRoleChange(role.id)}
@@ -350,7 +383,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 ))}
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center italic truncate">
-                {ROLES.find(r => r.id === currentRole)?.description}
+                {roles.find(r => r.id === currentRole)?.description}
             </p>
         </div>
 
@@ -366,7 +399,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                         {msg.role === 'user' ? <User size={12} /> : <Bot size={12} />}
                     </div>
                     <span className="text-xs text-gray-400">
-                        {msg.roleLabel || (msg.role === 'user' ? 'Jij' : 'AI')}
+                        {msg.roleLabel || (msg.role === 'user' ? texts.CHAT.YOU : texts.CHAT.AI)}
                     </span>
                 </div>
                 
@@ -382,7 +415,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                     {/* Suggested Follow Up */}
                     {msg.suggestedFollowUp && (
                         <div className="mt-3 pt-3 border-t border-white/10">
-                            <p className="text-xs text-gray-500 mb-2 italic">Suggestie:</p>
+                            <p className="text-xs text-gray-500 mb-2 italic">{texts.CHAT.SUGGESTION}</p>
                             <button 
                                 onClick={() => handleSendMessage(msg.suggestedFollowUp)}
                                 className="text-left w-full p-2 bg-neon-green/10 border border-neon-green/30 rounded hover:bg-neon-green/20 text-neon-green text-xs flex items-start transition-colors group"
@@ -423,7 +456,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                     className="flex items-center whitespace-nowrap px-3 py-1.5 bg-brand-primary/10 border border-brand-primary/30 hover:bg-brand-primary/20 text-brand-primary text-xs rounded-full transition-colors"
                    >
                        <Sparkles className="w-3 h-3 mr-1" />
-                       Genereer vervolgvraag
+                       {texts.CHAT.GENERATE_FOLLOW_UP}
                    </button>
                </div>
            )}
@@ -434,7 +467,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Stel een vraag aan de professor..."
+                placeholder={texts.CHAT.PLACEHOLDER}
                 className="w-full bg-black/30 border border-white/10 rounded-lg pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
                 disabled={isLoading}
               />

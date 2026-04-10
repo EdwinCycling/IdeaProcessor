@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, LayoutDashboard, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3, Sparkles, FolderOpen, Presentation } from 'lucide-react';
+import { Power, Users, Activity, LogOut, Brain, Check, ArrowRight, Play, FileText, List, HelpCircle, ArrowLeft, RotateCcw, Download, X, Settings, Save, Clock, Zap, MessageSquare, Briefcase, TrendingUp, AlertTriangle, EyeOff, Skull, Megaphone, Share2, Hash, Target, File as FileIcon, Edit3, Sparkles, FolderOpen, Presentation } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc, addDoc, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db, auth, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
-import { TEXTS } from '../constants/texts';
+import { useLanguage, useTexts } from '../services/i18n';
 import { Idea, AIAnalysisResult, IdeaDetails, ChatMessage, Cluster, SavedSession } from '../types';
 import { analyzeIdeas, generateIdeaDetails, generateBlog, generatePressRelease, clusterIdeas, generatePPTContent } from '../services/ai';
 import PptxGenJS from 'pptxgenjs';
-import { generateSessionCode } from '../utils/codeGenerator';
 import ChatAssistant from './ChatAssistant';
 import ConfirmationModal from './ConfirmationModal';
 import IdeasOverviewModal from './IdeasOverviewModal';
@@ -25,16 +24,18 @@ type DashboardPhase = 'MENU' | 'SETUP' | 'LIVE' | 'ANALYSIS' | 'DETAIL';
 type DetailTab = 'GENERAL' | 'QUESTIONS' | 'AI_ANSWERS' | 'BUSINESS_CASE' | 'DEVILS_ADVOCATE' | 'MARKETING' | 'PRESS_RELEASE' | 'BLOG' | 'POWERPOINT';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccessCode, onUpdateAccessCode }) => {
+  const texts = useTexts();
+  const { locale, translate, language } = useLanguage();
+  const TEXTS = texts;
   const [phase, setPhase] = useState<DashboardPhase>('MENU');
   const [context, setContext] = useState('');
   // Use Global Session ID for Single Tenant Event
-  const [sessionId, setSessionId] = useState(CURRENT_SESSION_ID);
+  const sessionId = CURRENT_SESSION_ID;
   const [ideas, setIdeas] = useState<Idea[]>([]);
   
   // Saved Sessions State
   const [showLoadSessionModal, setShowLoadSessionModal] = useState(false);
   const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
-  const [isReadOnly, setIsReadOnly] = useState(false);
   
   // Session Code State
   const [sessionCode, setSessionCode] = useState<string>('');
@@ -128,7 +129,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   const [showPPTViewer, setShowPPTViewer] = useState(false);
 
   const handleCopyToChat = (text: string) => {
-    setChatPastedText(`Ik wil graag dieper ingaan op dit punt: "${text}"`);
+    setChatPastedText(language === 'en' ? `I would like to go deeper into this point: "${text}"` : `Ik wil graag dieper ingaan op dit punt: "${text}"`);
     setIsChatOpen(true);
   };
 
@@ -222,8 +223,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             // Also set this as sessionCode for UI consistency
             setSessionCode(data.accessCode);
           }
-          if (data.defaultContext) {
-            setDefaultContext(data.defaultContext);
+          const storedContext = (data.defaultContext || data.context || '').toString();
+          if (storedContext) {
+            setDefaultContext(storedContext);
+            if (!context) {
+              setContext(storedContext);
+            }
           }
         } else {
           console.log("No existing session document found for ID:", sessionId);
@@ -242,9 +247,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
   useEffect(() => {
     if (showReports && db) {
         const q = query(collection(db, COLLECTIONS.SESSIONS, sessionId, 'reports'), orderBy('generatedAt', 'desc'));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
             setSavedReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        });
+          },
+          (error) => {
+            console.error("Error loading reports from Firestore:", error);
+            setSavedReports([]);
+          }
+        );
         return () => unsubscribe();
     }
   }, [showReports, sessionId]);
@@ -366,7 +378,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 innovationScore: 0,
                 sentiment: 'neutral',
                 keywords: [],
-                summary: "Geen ideeën ingediend.",
+                summary: texts.ADMIN_DASHBOARD.ANALYSIS.NO_IDEAS,
                 topIdeas: []
             });
             return;
@@ -458,7 +470,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         // 2. Save session status to Firestore
         await setDoc(doc(db, COLLECTIONS.SESSIONS, sessionId), {
           isActive: true,
-          context: context, // Save the context so users can see it
+          context: context,
+          defaultContext: context,
           updatedAt: Date.now()
         }, { merge: true });
 
@@ -473,7 +486,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       } catch (err) {
         console.error("CRITICAL ERROR starting session in Firestore:", err);
         setIsStarting(false);
-        alert("Fout bij het starten van de sessie in de database. Controleer je internetverbinding of Firebase instellingen.");
+        alert(texts.ADMIN_DASHBOARD.SESSION_ALERTS.START_ERROR);
       }
     } else {
         console.warn("Database not available, using mock mode");
@@ -669,7 +682,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
     // NEW: Original Idea Slide
     const sOriginal = pres.addSlide({ masterName: 'MASTER_SLIDE' });
-    sOriginal.addText("HET OORSPRONKELIJKE IDEE", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white, fontFace: 'Arial' });
+    sOriginal.addText(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.ORIGINAL_IDEA, { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white, fontFace: 'Arial' });
     sOriginal.addText(`"${selectedIdea.content}"`, { 
         x: 1.0, y: 2.0, w: '80%', h: 3.0, 
         fontSize: 24, color: 'DDDDDD', italic: true, align: 'center', valign: 'middle', 
@@ -680,7 +693,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     // 2. Press Release (if exists)
     if (ideaDetails.pressRelease) {
         const s = pres.addSlide({ masterName: 'MASTER_SLIDE' });
-        s.addText("PERSBERICHT", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white, fontFace: 'Arial' });
+        s.addText(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PRESS_RELEASE_SLIDE, { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white, fontFace: 'Arial' });
         
         s.addText(ideaDetails.pressRelease.title, { x: 0.5, y: 1.8, w: '90%', fontSize: 24, bold: true, color: brandPurple });
         s.addText(`${ideaDetails.pressRelease.location} - ${ideaDetails.pressRelease.date}`, { x: 0.5, y: 2.3, w: '90%', fontSize: 12, italic: true, color: 'AAAAAA' });
@@ -697,7 +710,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     if (ideaDetails.marketing) {
         // LinkedIn
         const sLink = pres.addSlide({ masterName: 'MASTER_SLIDE' });
-        sLink.addText("LinkedIn Campagne", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
+        sLink.addText(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.LINKEDIN_SLIDE, { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
         
         // 1. Background Container (White Card)
         sLink.addShape(pres.ShapeType.rect, { 
@@ -717,11 +730,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             x: 1.7, y: 1.75, w: 0.5, h: 0.5, 
             fill: { color: 'CCCCCC' } 
         });
-        sLink.addText("Our Idea", { 
+        sLink.addText(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PPT_AVATAR_NAME, { 
             x: 2.3, y: 1.75, w: 3, h: 0.3,
             fontSize: 12, bold: true, color: '000000', valign: 'top' 
         });
-        sLink.addText("Just now • 🌐", { 
+        sLink.addText(texts.ADMIN_DASHBOARD.DETAIL.MARKETING.JUST_NOW, { 
             x: 2.3, y: 2.05, w: 3, h: 0.2,
             fontSize: 9, color: '666666', valign: 'top'
         });
@@ -735,7 +748,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
         // Tweet
         const sTweet = pres.addSlide({ masterName: 'MASTER_SLIDE' });
-        sTweet.addText("SOCIAL MEDIA: Viral Tweet", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
+        sTweet.addText(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.SOCIAL_SLIDE, { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
         
         sTweet.addText(ideaDetails.marketing.viralTweet, { 
             x: 2.0, y: 2.0, w: 6, h: 2.5, 
@@ -749,7 +762,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     // 5. Blog Post (if exists) - 2 Columns, Font 8
     if (ideaDetails.blogPost) {
         const s = pres.addSlide({ masterName: 'MASTER_SLIDE' });
-        s.addText("BLOG POST", { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
+        s.addText(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.BLOG_SLIDE, { x: 0.5, y: 1.0, w: '90%', fontSize: 32, bold: true, color: white });
         s.addText(ideaDetails.blogPost.title, { x: 0.5, y: 1.6, w: '90%', fontSize: 20, bold: true, color: 'E1B000' });
         
         // Split content into two chunks roughly
@@ -765,11 +778,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     // Save with timestamp
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
-    const dateStr = now.toLocaleDateString('nl-NL').replace(/-/g, '_'); // depending on locale, might need tweaking
-    // Let's use ISO date for safety: YYYY-MM-DD
     const isoDate = now.toISOString().split('T')[0];
     
-    pres.writeFile({ fileName: `IdeaProcessor_${isoDate}_${timeStr}.pptx` });
+    pres.writeFile({ fileName: translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PPT_FILE, { date: isoDate, time: timeStr }) });
   };
 
   const handleReset = () => {
@@ -810,7 +821,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
              const codeSnap = await getDoc(codeRef);
              
              if (codeSnap.exists() && codeSnap.data().sessionId !== sessionId) {
-                 alert("Deze code is al in gebruik door een andere admin. Kies een andere.");
+                 alert(texts.ADMIN_DASHBOARD.SETTINGS_ALERTS.CODE_IN_USE);
                  return;
              }
 
@@ -867,19 +878,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     // Title
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.text("Idea Processor - Plan", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PDF_TITLE, margin, yPos);
     yPos += 15;
 
     // Context
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Context: ${context}`, margin, yPos);
+    doc.text(translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.CONTEXT, { context }), margin, yPos);
     yPos += 15;
 
     // Selected Idea
     doc.setFontSize(16);
     doc.setTextColor(0);
-    doc.text(`Idee: ${selectedIdea.name}`, margin, yPos);
+    doc.text(translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.IDEA, { name: selectedIdea.name }), margin, yPos);
     yPos += 8;
     
     doc.setFont("helvetica", "normal");
@@ -890,7 +901,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
     // Rationale
     doc.setFont("helvetica", "bold");
-    doc.text("Waarom dit een goed idee is:", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.RATIONALE, margin, yPos);
     yPos += 6;
     doc.setFont("helvetica", "normal");
     const rationaleLines = doc.splitTextToSize(ideaDetails.rationale, 170);
@@ -899,7 +910,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
     // Steps
     doc.setFont("helvetica", "bold");
-    doc.text("Implementatie Stappen:", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.STEPS, margin, yPos);
     yPos += 6;
     doc.setFont("helvetica", "normal");
     ideaDetails.steps.forEach((step, i) => {
@@ -913,7 +924,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("Business Case Report", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.BUSINESS_CASE, margin, yPos);
     yPos += 10;
     
     doc.setFontSize(11);
@@ -930,15 +941,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         yPos += lines.length * 5 + 5;
     };
 
-    printBCItem("Probleemstelling:", bc.problemStatement);
-    printBCItem("Oplossing:", bc.proposedSolution);
-    printBCItem("Strategische Fit:", bc.strategicFit);
-    printBCItem("Financiële Impact:", bc.financialImpact);
+    printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PROBLEM, bc.problemStatement);
+    printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.SOLUTION, bc.proposedSolution);
+    printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.STRATEGIC_FIT, bc.strategicFit);
+    printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.FINANCIAL_IMPACT, bc.financialImpact);
     
     // Risks
     if (yPos > 260) { doc.addPage(); yPos = 20; }
     doc.setFont("helvetica", "bold");
-    doc.text("Risico's:", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.RISKS, margin, yPos);
     yPos += 5;
     doc.setFont("helvetica", "normal");
     bc.risks.forEach(risk => {
@@ -952,16 +963,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         if (yPos > 220) { doc.addPage(); yPos = 20; }
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        doc.text("Devil's Advocate Analysis", margin, yPos);
+        doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.DEVILS_ADVOCATE, margin, yPos);
         yPos += 10;
         doc.setFontSize(11);
 
-        printBCItem("Kritiek:", ideaDetails.devilsAdvocate.critique);
-        printBCItem("Pre-Mortem (Waarom faalde het?):", ideaDetails.devilsAdvocate.preMortem);
+        printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.CRITIQUE, ideaDetails.devilsAdvocate.critique);
+        printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PRE_MORTEM, ideaDetails.devilsAdvocate.preMortem);
 
         if (yPos > 260) { doc.addPage(); yPos = 20; }
         doc.setFont("helvetica", "bold");
-        doc.text("Blinde Vlekken:", margin, yPos);
+        doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.BLIND_SPOTS, margin, yPos);
         yPos += 5;
         doc.setFont("helvetica", "normal");
         ideaDetails.devilsAdvocate.blindSpots.forEach(bs => {
@@ -976,14 +987,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         if (yPos > 220) { doc.addPage(); yPos = 20; }
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        doc.text("Marketing & Pitch Assets", margin, yPos);
+        doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.MARKETING, margin, yPos);
         yPos += 10;
         doc.setFontSize(11);
 
-        printBCItem("Slogan:", ideaDetails.marketing.slogan);
-        printBCItem("Doelgroep:", ideaDetails.marketing.targetAudience);
-        printBCItem("LinkedIn Post:", ideaDetails.marketing.linkedInPost);
-        printBCItem("Viral Tweet:", ideaDetails.marketing.viralTweet);
+        printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.SLOGAN, ideaDetails.marketing.slogan);
+        printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.TARGET_AUDIENCE, ideaDetails.marketing.targetAudience);
+        printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.LINKEDIN_POST, ideaDetails.marketing.linkedInPost);
+        printBCItem(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.VIRAL_TWEET, ideaDetails.marketing.viralTweet);
     }
 
     // --- PRESS RELEASE (Added) ---
@@ -991,7 +1002,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         if (yPos > 220) { doc.addPage(); yPos = 20; }
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        doc.text("Persbericht", margin, yPos);
+        doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PRESS_RELEASE, margin, yPos);
         yPos += 10;
         
         // Title
@@ -1019,7 +1030,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         if (yPos > 220) { doc.addPage(); yPos = 20; }
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        doc.text("Blog Post", margin, yPos);
+        doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.BLOG_POST, margin, yPos);
         yPos += 10;
         
         // Title
@@ -1042,7 +1053,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("AI Simulatie: Vraag & Antwoord", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.AI_SIMULATION, margin, yPos);
     yPos += 10;
     
     doc.setFontSize(11);
@@ -1051,14 +1062,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         
         doc.setFont("helvetica", "bold");
         doc.setTextColor(200, 0, 0); // Dark Red
-        const qLines = doc.splitTextToSize(`Q: ${q}`, 170);
+        const qLines = doc.splitTextToSize(translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.QUESTION_PREFIX, { question: q }), 170);
         doc.text(qLines, margin, yPos);
         yPos += qLines.length * 5 + 2;
 
         if (ideaDetails.questionAnswers && ideaDetails.questionAnswers[i]) {
             doc.setFont("helvetica", "italic");
             doc.setTextColor(50, 50, 50);
-            const aLines = doc.splitTextToSize(`A: ${ideaDetails.questionAnswers[i]}`, 170);
+            const aLines = doc.splitTextToSize(translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.ANSWER_PREFIX, { answer: ideaDetails.questionAnswers[i] }), 170);
             doc.text(aLines, margin, yPos);
             yPos += aLines.length * 5 + 6;
         } else {
@@ -1072,7 +1083,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     yPos = 20;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("Product Backlog Items (PBI's)", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PBI_TITLE, margin, yPos);
     yPos += 12;
     
     doc.setFontSize(10);
@@ -1093,13 +1104,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         doc.setFontSize(9);
         doc.setFont("helvetica", "italic");
         doc.setTextColor(100);
-        doc.text(`Prioriteit: ${pbi.priority || 'Medium'} | Story Points: ${pbi.storyPoints}`, margin, yPos);
+        doc.text(translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PRIORITY_POINTS, { priority: pbi.priority || 'Medium', points: pbi.storyPoints }), margin, yPos);
         yPos += 6;
         doc.setTextColor(0);
 
         // User Story
         doc.setFont("helvetica", "bold");
-        doc.text("User Story:", margin, yPos);
+        doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.USER_STORY, margin, yPos);
         yPos += 5;
         doc.setFont("helvetica", "normal");
         const storyText = pbi.userStory || pbi.description;
@@ -1110,7 +1121,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         // Acceptance Criteria
         if (pbi.acceptanceCriteria && pbi.acceptanceCriteria.length > 0) {
             doc.setFont("helvetica", "bold");
-            doc.text("Acceptatiecriteria:", margin, yPos);
+            doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.ACCEPTANCE_CRITERIA, margin, yPos);
             yPos += 5;
             doc.setFont("helvetica", "normal");
             pbi.acceptanceCriteria.forEach(ac => {
@@ -1125,7 +1136,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         // Business Value
         if (pbi.businessValue) {
             doc.setFont("helvetica", "bold");
-            doc.text("Business Value:", margin, yPos);
+            doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.BUSINESS_VALUE, margin, yPos);
             yPos += 5;
             doc.setFont("helvetica", "normal");
             const bvLines = doc.splitTextToSize(pbi.businessValue, 170);
@@ -1136,7 +1147,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         // Dependencies
         if (pbi.dependencies && pbi.dependencies.length > 0) {
             doc.setFont("helvetica", "bold");
-            doc.text(`Dependencies: ${pbi.dependencies.join(', ')}`, margin, yPos);
+            doc.text(translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.DEPENDENCIES, { dependencies: pbi.dependencies.join(', ') }), margin, yPos);
             yPos += 7;
         }
 
@@ -1154,7 +1165,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(0);
-    doc.text("Appendix: Alle Ingezonden Ideeën", margin, yPos);
+    doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.APPENDIX, margin, yPos);
     yPos += 15;
     
     doc.setFontSize(10);
@@ -1170,7 +1181,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         // Idea Header
         doc.setFont("helvetica", "bold");
         doc.text(`${index + 1}. ${idea.name}`, margin, yPos);
-        const timeStr = new Date(idea.timestamp).toLocaleTimeString('nl-NL');
+        const timeStr = new Date(idea.timestamp).toLocaleTimeString(locale);
         doc.setFont("helvetica", "italic");
         doc.setTextColor(100);
         doc.text(timeStr, 170, yPos);
@@ -1193,7 +1204,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         doc.setFont("helvetica", "bold");
         doc.setFontSize(18);
         doc.setTextColor(0);
-        doc.text("Chatgeschiedenis", margin, yPos);
+        doc.text(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.CHAT_HISTORY, margin, yPos);
         yPos += 15;
         
         doc.setFontSize(10);
@@ -1208,11 +1219,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
 
             // Role Header
             doc.setFont("helvetica", "bold");
-            const roleText = msg.role === 'assistant' ? 'Assistent' : 'Gebruiker';
+            const roleText = msg.role === 'assistant' ? texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.ASSISTANT : texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.USER;
             doc.setTextColor(msg.role === 'assistant' ? 70 : 0);
             doc.text(`${roleText}:`, margin, yPos);
             
-            const timeStr = new Date(msg.timestamp).toLocaleTimeString('nl-NL');
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString(locale);
             doc.setFont("helvetica", "italic");
             doc.setTextColor(120);
             doc.text(timeStr, 170, yPos);
@@ -1232,7 +1243,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     try {
         if (db) {
             const pdfBase64 = doc.output('datauristring');
-            const fileName = `Idea_${selectedIdea.name.replace(/\s+/g, '_')}_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`;
+            const fileName = translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.REPORT_FILE, {
+              name: selectedIdea.name.replace(/\s+/g, '_'),
+              timestamp: new Date().toISOString().replace(/[:.]/g, '-')
+            });
             
             await addDoc(collection(db, COLLECTIONS.SESSIONS, CURRENT_SESSION_ID, 'reports'), {
                 name: fileName,
@@ -1247,13 +1261,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         console.error("Error saving PDF to DB:", e);
     }
 
-    doc.save(`Idea_${selectedIdea.name.replace(/\s+/g, '_')}.pdf`);
+    doc.save(translate(texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.PDF_FILE, { name: selectedIdea.name.replace(/\s+/g, '_') }));
   };
   
   const handleExportCSV = () => {
     if (!ideaDetails || !selectedIdea) return;
     
-    const headers = ["ID", "Title", "User Story", "Story Points", "Priority", "Acceptance Criteria", "Business Value", "Dependencies"];
+    const headers = texts.ADMIN_DASHBOARD.DETAIL.EXPORTS.CSV_HEADERS;
     // Map data to CSV rows
     const rows = ideaDetails.pbis.map(pbi => [
       `"${pbi.id || ''}"`,
@@ -1290,30 +1304,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
     const remaining = limit - currentCount;
     
     if (remaining <= 0) {
-      alert(`Limiet van ${limit} ideeën bereikt voor deze sessie.`);
+      alert(translate(texts.ADMIN_DASHBOARD.SESSION_ALERTS.LIMIT_REACHED, { limit }));
       return;
     }
 
     // Add 10 ideas per click, but don't exceed the total limit of 200
     const countToAdd = Math.min(remaining, batchSize);
 
-    const stressIdeas = [
-      // Cluster 1: Magazijn Automatisering
-      "We moeten robots inzetten voor het orderpicken in het magazijn.",
-      "Zelfrijdende karretjes die de orders naar de inpaktafel brengen.",
-      "Automatisering van het magazijn met robots die 's nachts doorwerken.",
-      "Gebruik drones voor voorraadtelling in de hoge stellingen.",
-      
-      // Cluster 2: Duurzaamheid
-      "Al onze verpakkingen moeten van gerecycled materiaal zijn.",
-      "Geen plastic meer gebruiken bij het verzenden van pakketjes.",
-      "Overstappen op elektrisch vervoer voor de bezorging van onze producten.",
-      "Zonnepanelen op het dak van het distributiecentrum leggen.",
-
-      // Cluster 3: Medewerker Welzijn
-      "Gratis fruit en gezonde lunch voor alle medewerkers.",
-      "Een sportruimte inrichten waar we in de pauze kunnen sporten."
-    ];
+      const stressIdeas = language === 'en'
+        ? [
+            "We should use robots for order picking in the warehouse.",
+            "Self-driving carts that bring orders to the packing table.",
+            "Warehouse automation with robots that can keep working at night.",
+            "Use drones for stock counting in high storage racks.",
+            "All our packaging should be made from recycled material.",
+            "Stop using plastic when shipping parcels.",
+            "Switch to electric transport for product delivery.",
+            "Install solar panels on the distribution center roof.",
+            "Free fruit and healthy lunch for all employees.",
+            "Create a sports area where we can exercise during breaks."
+          ]
+        : [
+            "We moeten robots inzetten voor het orderpicken in het magazijn.",
+            "Zelfrijdende karretjes die de orders naar de inpaktafel brengen.",
+            "Automatisering van het magazijn met robots die 's nachts doorwerken.",
+            "Gebruik drones voor voorraadtelling in de hoge stellingen.",
+            "Al onze verpakkingen moeten van gerecycled materiaal zijn.",
+            "Geen plastic meer gebruiken bij het verzenden van pakketjes.",
+            "Overstappen op elektrisch vervoer voor de bezorging van onze producten.",
+            "Zonnepanelen op het dak van het distributiecentrum leggen.",
+            "Gratis fruit en gezonde lunch voor alle medewerkers.",
+            "Een sportruimte inrichten waar we in de pauze kunnen sporten."
+          ];
 
     try {
       const ideasRef = collection(db, COLLECTIONS.SESSIONS, sessionId, COLLECTIONS.IDEAS);
@@ -1322,7 +1344,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       for (let i = 0; i < countToAdd; i++) {
         const content = stressIdeas[i % stressIdeas.length];
         promises.push(addDoc(ideasRef, {
-          name: `Test Gebruiker ${Math.floor(Math.random() * 1000)}`,
+          name: `${language === 'en' ? 'Test User' : 'Test Gebruiker'} ${Math.floor(Math.random() * 1000)}`,
           content: content,
           timestamp: Date.now() + i
         }));
@@ -1350,7 +1372,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
             body: JSON.stringify({ 
                 context, 
                 idea: selectedIdea,
-                existingQuestions: ideaDetails?.questions || [] 
+                existingQuestions: ideaDetails?.questions || [],
+                language
             })
         });
 
@@ -1364,9 +1387,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         if (data.error) {
             // AI generation had an error
         }
-    } catch (err) {
+    } catch {
         // Fallback in case of network/server error
-        setFollowUpQuestion(`Hoe kunnen we het idee "${selectedIdea.name}" verder uitbouwen voor maximale impact?`);
+        setFollowUpQuestion(translate(texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.FALLBACK_QUESTION, { idea: selectedIdea.name }));
     } finally {
         setIsGeneratingFollowUp(false);
     }
@@ -1434,10 +1457,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       };
 
       await addDoc(collection(db, COLLECTIONS.USERS, auth.currentUser.uid, COLLECTIONS.SAVED_SESSIONS), savedSession);
-      alert("Sessie succesvol opgeslagen!");
+      alert(texts.ADMIN_DASHBOARD.SESSION_ALERTS.SAVE_SUCCESS);
     } catch (error) {
       console.error("Error saving session:", error);
-      alert("Er ging iets mis bij het opslaan van de sessie.");
+      alert(texts.ADMIN_DASHBOARD.SESSION_ALERTS.SAVE_ERROR);
     }
   };
 
@@ -1446,7 +1469,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
      try {
          const q = query(collection(db, COLLECTIONS.USERS, auth.currentUser.uid, COLLECTIONS.SAVED_SESSIONS), orderBy('timestamp', 'desc'));
          const querySnapshot = await getDocs(q);
-         const sessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SavedSession));
+         let sessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SavedSession));
+
+         if (sessions.length === 0) {
+             const legacyQ = query(collection(db, COLLECTIONS.USERS, auth.currentUser.uid, 'savedSessions'), orderBy('timestamp', 'desc'));
+             const legacySnapshot = await getDocs(legacyQ);
+             sessions = legacySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SavedSession));
+         }
+
          setSavedSessions(sessions);
          setShowLoadSessionModal(true);
      } catch (error) {
@@ -1460,12 +1490,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       if (session.analysis) {
           setAnalysis(session.analysis);
       }
-      setIsReadOnly(true);
       setShowLoadSessionModal(false);
       setPhase('ANALYSIS');
   };
 
   const selectedIdea = analysis?.topIdeas.find(i => i.id === selectedIdeaId);
+  const blogStyleOptions = [
+    { value: 'zakelijk', label: texts.ADMIN_DASHBOARD.DETAIL.BLOG.STYLE_BUSINESS },
+    { value: 'spannend', label: texts.ADMIN_DASHBOARD.DETAIL.BLOG.STYLE_EXCITING },
+    { value: 'humor', label: texts.ADMIN_DASHBOARD.DETAIL.BLOG.STYLE_HUMOR }
+  ];
+  const pressReleaseStyleOptions = [
+    { value: 'zakelijk', label: texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.STYLE_BUSINESS },
+    { value: 'spannend', label: texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.STYLE_EXCITING },
+    { value: 'humor', label: texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.STYLE_HUMOR }
+  ];
 
   const handleStartReveal = () => {
     if (analysis && analysis.topIdeas.length > 0) {
@@ -1488,11 +1527,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
       {/* --- COUNTDOWN OVERLAY --- */}
       {isClosing && (
         <div className="absolute inset-0 z-[200] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
-           <h2 className="text-4xl text-gray-500 font-mono tracking-widest mb-4">CLOSING SESSION</h2>
+           <h2 className="text-4xl text-gray-500 font-mono tracking-widest mb-4">{texts.ADMIN_DASHBOARD.LIVE.CLOSING_TITLE}</h2>
            <div className={`text-[15rem] leading-none font-black text-brand-primary transition-all duration-75 ${closingCountdown <= 3 ? 'animate-pulse' : ''}`}>
              {closingCountdown}
            </div>
-           <p className="mt-8 text-xl text-white">Saving data & Initializing AI...</p>
+           <p className="mt-8 text-xl text-white">{texts.ADMIN_DASHBOARD.LIVE.CLOSING_SUBTITLE}</p>
         </div>
       )}
 
@@ -1506,15 +1545,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
              {sessionCode && (
                 <span className="flex items-center text-neon-green font-mono bg-neon-green/10 px-3 py-1 rounded border border-neon-green/20 ml-4 animate-in fade-in">
                     <Hash size={14} className="mr-2" /> 
-                    EVENT CODE: <span className="font-bold ml-1 tracking-widest">{sessionCode.toUpperCase()}</span>
+                    {texts.ADMIN_DASHBOARD.LIVE.EVENT_CODE.toUpperCase()}: <span className="font-bold ml-1 tracking-widest">{sessionCode.toUpperCase()}</span>
                 </span>
              )}
              <span className={`px-2 py-0.5 rounded-full text-xs font-mono border ${phase === 'LIVE' ? 'border-neon-green text-neon-green' : 'border-gray-600 text-gray-500'}`}>
-                {phase === 'MENU' && 'DASHBOARD'}
-                {phase === 'SETUP' && 'SETUP'}
+                {phase === 'MENU' && texts.ADMIN_DASHBOARD.TITLE.toUpperCase()}
+                {phase === 'SETUP' && texts.ADMIN_DASHBOARD.SETUP.TITLE.toUpperCase()}
                 {phase === 'LIVE' && TEXTS.ADMIN_DASHBOARD.LIVE.STATUS_ACTIVE}
                 {phase === 'ANALYSIS' && TEXTS.ADMIN_DASHBOARD.ANALYSIS.STATUS_DONE}
-                {phase === 'DETAIL' && 'DEEP DIVE'}
+                {phase === 'DETAIL' && texts.ADMIN_DASHBOARD.DETAIL.SELECTED_IDEA.toUpperCase()}
              </span>
         </div>
         <div className="flex items-center space-x-4">
@@ -1523,10 +1562,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     <button 
                         onClick={handleStressTest}
                         className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold transition-all flex items-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-orange-500/50"
-                        title="Voeg 10 test-ideeën toe"
+                        title={texts.ADMIN_DASHBOARD.LIVE.STRESS_TEST_TITLE}
                     >
                         <Zap className="w-3 h-3 mr-1" />
-                        STRESS TEST (+10)
+                        {texts.ADMIN_DASHBOARD.LIVE.STRESS_TEST}
                     </button>
                     <div className="h-4 w-px bg-white/20"></div>
                     <div className="flex items-center bg-black/50 px-3 py-1 rounded border border-white/10 text-neon-cyan font-mono animate-pulse-slow">
@@ -1588,8 +1627,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         <div className="p-4 bg-white/5 rounded-full w-fit mb-6 group-hover:scale-110 transition-transform">
                             <FileIcon className="w-10 h-10 text-gray-400 group-hover:text-white" />
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-2">Rapportages</h3>
-                        <p className="text-gray-400">Bekijk eerder gegenereerde PDF's van sessies.</p>
+                        <h3 className="text-2xl font-bold text-white mb-2">{texts.ADMIN_DASHBOARD.HUB.REPORTS_TITLE}</h3>
+                        <p className="text-gray-400">{texts.ADMIN_DASHBOARD.HUB.REPORTS_DESC}</p>
                     </button>
                 </div>
             </div>
@@ -1608,13 +1647,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     
                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center flex-shrink-0">
                         <FileIcon className="mr-3 text-brand-primary" />
-                        Opgeslagen Rapportages
+                        {texts.ADMIN_DASHBOARD.REPORTS.TITLE}
                     </h2>
 
                     <div className="overflow-y-auto flex-1 pr-2">
                         {savedReports.length === 0 ? (
                             <div className="text-center text-gray-500 py-10">
-                                Nog geen rapportages gevonden voor deze sessie.
+                                {texts.ADMIN_DASHBOARD.REPORTS.EMPTY}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 gap-4">
@@ -1623,7 +1662,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         <div>
                                             <h4 className="font-bold text-white">{report.ideaName}</h4>
                                             <p className="text-xs text-gray-400 font-mono mt-1">
-                                                {new Date(report.generatedAt).toLocaleString('nl-NL')}
+                                                {new Date(report.generatedAt).toLocaleString(locale)}
                                             </p>
                                         </div>
                                         <a 
@@ -1632,7 +1671,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm flex items-center transition-colors"
                                         >
                                             <Download className="w-4 h-4 mr-2" />
-                                            Download PDF
+                                            {texts.ADMIN_DASHBOARD.REPORTS.DOWNLOAD_PDF}
                                         </a>
                                     </div>
                                 ))}
@@ -1687,7 +1726,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                   {isStarting ? (
                     <>
                       <div className="animate-spin mr-3 h-5 w-5 border-2 border-black border-t-transparent rounded-full" />
-                      <span>{Math.round(startProgress)}% Bezig met starten...</span>
+                      <span>{translate(texts.ADMIN_DASHBOARD.SETUP.STARTING, { progress: Math.round(startProgress) })}</span>
                     </>
                   ) : (
                     <>
@@ -1702,7 +1741,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                   className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 rounded-md flex items-center justify-center transition-all"
                 >
                   <FolderOpen className="mr-2 w-5 h-5" />
-                  Laad Eerdere Sessie
+                  {texts.ADMIN_DASHBOARD.SETUP.BTN_LOAD}
                 </button>
               </div>
             </div>
@@ -1718,30 +1757,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     <div className="bg-white p-3 sm:p-4 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-4 sm:mb-6 mx-auto inline-block">
                         <img 
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/?code=${sessionCode}`)}`}
-                            alt="Scan QR" 
+                            alt={texts.ADMIN_DASHBOARD.LIVE.SCAN_TITLE} 
                             className="w-44 h-44 sm:w-56 sm:h-56 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain"
                         />
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{TEXTS.ADMIN_DASHBOARD.LIVE.SCAN_TITLE}</h2>
                     
                     <div className="flex flex-col gap-2 mb-5 sm:mb-8 items-center">
-                         <p className="text-gray-400 text-sm uppercase tracking-widest font-bold">Event Code</p>
+                         <p className="text-gray-400 text-sm uppercase tracking-widest font-bold">{texts.ADMIN_DASHBOARD.LIVE.EVENT_CODE}</p>
                          {sessionCode ? (
                             <p className="text-brand-primary font-mono text-4xl sm:text-5xl md:text-6xl font-black tracking-widest bg-white/10 px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-lg border-2 border-neon-green/50 shadow-[0_0_30px_rgba(57,255,20,0.2)]">
                                 {sessionCode.toUpperCase()}
                             </p>
                          ) : (
-                            <p className="text-gray-500 italic">Laden...</p>
+                            <p className="text-gray-500 italic">{texts.ADMIN_DASHBOARD.LIVE.LOADING_CODE}</p>
                          )}
                          <p className="text-gray-500 font-mono text-xs mt-4">
-                            Deelnemers voeren deze code in om mee te doen.
+                            {texts.ADMIN_DASHBOARD.LIVE.ENTER_CODE}
                          </p>
                     </div>
                     
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-md mx-auto w-full">
-                        <p className="text-gray-400 text-sm mb-1">Ga naar:</p>
+                        <p className="text-gray-400 text-sm mb-1">{texts.ADMIN_DASHBOARD.LIVE.GO_TO}</p>
                         <p className="text-neon-cyan font-mono text-xl font-bold tracking-wide select-all">ideaprocessor.netlify.app</p>
-                        <p className="text-gray-500 text-xs mt-1">en voer de code in.</p>
+                        <p className="text-gray-500 text-xs mt-1">{texts.ADMIN_DASHBOARD.LIVE.GO_TO_HINT}</p>
                     </div>
                 </div>
              </div>
@@ -1770,17 +1809,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     
                     <div className="p-6 pb-2 flex-shrink-0 flex justify-between items-center">
                          <h3 className="font-bold text-lg">{TEXTS.ADMIN_DASHBOARD.LIVE.LOG_TITLE}</h3>
-                         <span className="text-xs font-mono text-gray-500">LIVE FEED</span>
+                         <span className="text-xs font-mono text-gray-500">{texts.ADMIN_DASHBOARD.LIVE.LIVE_FEED}</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-3 font-mono text-xs text-gray-400">
-                        <p className="text-white">Context: "{context}"</p>
-                        <p className="border-t border-white/5 pt-2">Waiting for input...</p>
-                        {ideas.map((idea, i) => (
+                        <p className="text-white">{texts.ADMIN_DASHBOARD.LIVE.CONTEXT_LABEL}: "{context}"</p>
+                        <p className="border-t border-white/5 pt-2">{texts.ADMIN_DASHBOARD.LIVE.WAITING_FOR_INPUT}</p>
+                        {ideas.map((idea) => (
                            <div key={idea.id} className="text-neon-green animate-in slide-in-from-left-2 fade-in duration-300 flex justify-between">
-                             <span>&gt; New idea received from {idea.name}</span>
+                             <span>&gt; {translate(texts.ADMIN_DASHBOARD.LIVE.NEW_IDEA_RECEIVED, { name: idea.name })}</span>
                              <span className="text-gray-600">
-                               {new Date(idea.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                               {new Date(idea.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                              </span>
                            </div>
                         ))}
@@ -1801,7 +1840,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         className="w-24 py-6 text-xs font-bold rounded-lg shadow-lg bg-brand-primary hover:opacity-90 text-white shadow-purple-900/20 flex flex-col items-center justify-center transition-all"
                     >
                         <X className="w-5 h-5 mb-1" />
-                        Annuleren
+                        {texts.ADMIN_DASHBOARD.LIVE.BTN_CANCEL}
                     </button>
                 </div>
              </div>
@@ -1824,7 +1863,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         className="flex items-center text-xs font-bold text-gray-400 hover:text-white transition-colors"
                      >
                         <Save className="w-3.5 h-3.5 mr-1.5" />
-                        Opslaan
+                        {texts.ADMIN_DASHBOARD.ANALYSIS.SAVE}
                      </button>
                      <div className="flex items-baseline gap-2">
                          <span className="text-2xl font-bold text-neon-cyan">{ideas.length}</span>
@@ -1869,7 +1908,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 </div>
                             </div>
                             
-                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-2">Innovation Score</h3>
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-2">{texts.ADMIN_DASHBOARD.ANALYSIS.INNOVATION_SCORE}</h3>
                         </div>
 
                         {/* Future Headline & Keywords */}
@@ -1878,7 +1917,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                             
                             <div className="flex items-center space-x-2 text-brand-primary font-mono text-[10px] mb-3">
                                 <Zap className="w-3.5 h-3.5" />
-                                <span>FUTURE INSIGHT GENERATED</span>
+                                <span>{texts.ADMIN_DASHBOARD.ANALYSIS.FUTURE_INSIGHT}</span>
                             </div>
 
                             <h2 className="text-xl md:text-2xl font-black text-white leading-tight mb-4 italic line-clamp-2">
@@ -1914,7 +1953,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 {/* Top Ideas Grid REPLACEMENT */}
                 <div>
                    <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                     {hasRevealed ? "Geselecteerd Top Idee" : "Top Idee Onthulling"}
+                     {hasRevealed ? texts.ADMIN_DASHBOARD.ANALYSIS.REVEALED_IDEA : texts.ADMIN_DASHBOARD.ANALYSIS.REVEAL_IDEA}
                    </h3>
                    
                    <div className="flex flex-col md:flex-row gap-4">
@@ -1932,7 +1971,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                               </div>
                               <div className="mb-4">
                                 <span className="text-[10px] font-mono text-gray-400">
-                                    {new Date(idea.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(idea.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <h4 className="text-lg font-bold text-white mt-1">{idea.name}</h4>
                               </div>
@@ -1955,10 +1994,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                               <Sparkles className={`${hasRevealed ? 'w-5 h-5 text-gray-400' : 'w-10 h-10 text-neon-cyan'}`} />
                           </div>
                           <h3 className={`${hasRevealed ? 'text-base' : 'text-2xl'} font-bold text-white mb-1`}>
-                              {hasRevealed ? "Kies een ander idee" : "Onthul het Top Idee"}
+                              {hasRevealed ? texts.ADMIN_DASHBOARD.ANALYSIS.PICK_ANOTHER : texts.ADMIN_DASHBOARD.ANALYSIS.START_REVEAL}
                           </h3>
                           <p className="text-[10px] text-gray-400 max-w-md px-4">
-                              {hasRevealed ? "Start de onthulling opnieuw om een andere winnaar te kiezen." : "Start de spectaculaire onthulling van het beste idee uit deze sessie."}
+                              {hasRevealed ? texts.ADMIN_DASHBOARD.ANALYSIS.RESTART_REVEAL : texts.ADMIN_DASHBOARD.ANALYSIS.START_REVEAL_DESC}
                           </p>
                       </button>
                    </div>
@@ -1979,7 +2018,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                       className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 font-bold text-sm rounded flex items-center transition-all border border-white/10"
                     >
                       <List className="mr-1.5 w-4 h-4" />
-                      Overzicht
+                      {texts.ADMIN_DASHBOARD.ANALYSIS.OVERVIEW}
                     </button>
                   </div>
 
@@ -1989,7 +2028,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                       className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 font-bold text-sm rounded flex items-center transition-all border border-white/10"
                     >
                       <Sparkles className="mr-1.5 w-4 h-4 text-neon-purple" />
-                      Samenvoegen
+                      {texts.ADMIN_DASHBOARD.ANALYSIS.MERGE}
                     </button>
                     <button 
                       onClick={handleSelectIdea}
@@ -2019,7 +2058,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 rounded-bl-full -mr-8 -mt-8"></div>
                     <div className="relative z-10">
                         <div className="flex items-center text-brand-primary mb-2 font-mono text-sm uppercase tracking-widest">
-                            <Check className="w-4 h-4 mr-2" /> Selected Idea
+                            <Check className="w-4 h-4 mr-2" /> {texts.ADMIN_DASHBOARD.DETAIL.SELECTED_IDEA}
                         </div>
                         <h2 className="text-3xl font-black text-white mb-2">{selectedIdea.name}</h2>
                         <p className="text-xl text-gray-200 italic">"{selectedIdea.content}"</p>
@@ -2068,19 +2107,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         onClick={() => setActiveTab('PRESS_RELEASE')}
                         className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'PRESS_RELEASE' ? 'border-blue-500 text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
                     >
-                       <span className="flex items-center"><Share2 className="w-4 h-4 mr-2" /> Persbericht</span>
+                       <span className="flex items-center"><Share2 className="w-4 h-4 mr-2" /> {texts.ADMIN_DASHBOARD.DETAIL.TABS.PRESS_RELEASE}</span>
                     </button>
                     <button 
                         onClick={() => setActiveTab('BLOG')}
                         className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'BLOG' ? 'border-yellow-500 text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
                     >
-                       <span className="flex items-center"><FileText className="w-4 h-4 mr-2" /> Blog</span>
+                       <span className="flex items-center"><FileText className="w-4 h-4 mr-2" /> {texts.ADMIN_DASHBOARD.DETAIL.TABS.BLOG}</span>
                     </button>
                     <button 
                         onClick={() => setActiveTab('POWERPOINT')}
                         className={`whitespace-nowrap px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'POWERPOINT' ? 'border-brand-primary text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}
                     >
-                       <span className="flex items-center"><Presentation className="w-4 h-4 mr-2" /> PowerPoint</span>
+                       <span className="flex items-center"><Presentation className="w-4 h-4 mr-2" /> {texts.ADMIN_DASHBOARD.DETAIL.TABS.POWERPOINT}</span>
                     </button>
                 </div>
 
@@ -2091,7 +2130,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                              <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-bold text-white">{TEXTS.ADMIN_DASHBOARD.DETAIL.RATIONALE_TITLE}</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.rationale)} className="text-gray-400 hover:text-neon-green transition-colors" title="Kopieer naar chat"><MessageSquare className="w-4 h-4" /></button>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.rationale)} className="text-gray-400 hover:text-neon-green transition-colors" title={texts.ADMIN_DASHBOARD.DETAIL.BTN_CHAT_COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <p className="text-gray-300 leading-relaxed text-lg">{ideaDetails.rationale}</p>
                             </div>
@@ -2102,7 +2141,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         <List className="w-5 h-5 mr-2 text-neon-green" />
                                         {TEXTS.ADMIN_DASHBOARD.DETAIL.PLAN_TITLE}
                                     </h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.steps?.map((s, i) => `${i+1}. ${s}`).join('\n') || '')} className="text-gray-400 hover:text-neon-green transition-colors" title="Kopieer naar chat"><MessageSquare className="w-4 h-4" /></button>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.steps?.map((s, i) => `${i+1}. ${s}`).join('\n') || '')} className="text-gray-400 hover:text-neon-green transition-colors" title={texts.ADMIN_DASHBOARD.DETAIL.BTN_CHAT_COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <div className="space-y-6">
                                     {ideaDetails.steps?.map((step, idx) => (
@@ -2130,7 +2169,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                             <div className="bg-white/5 border border-white/10 p-8 rounded-lg">
                                 <div className="flex justify-center items-center mb-6 space-x-2">
                                     <h3 className="text-xl font-bold text-white">{TEXTS.ADMIN_DASHBOARD.DETAIL.QUESTIONS_TITLE}</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.questions?.map((q, i) => `Q${i+1}: ${q}`).join('\n') || '')} className="text-gray-400 hover:text-neon-green transition-colors" title="Kopieer naar chat"><MessageSquare className="w-4 h-4" /></button>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.questions?.map((q, i) => `Q${i+1}: ${q}`).join('\n') || '')} className="text-gray-400 hover:text-neon-green transition-colors" title={texts.ADMIN_DASHBOARD.DETAIL.BTN_CHAT_COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <ul className="space-y-6 max-w-2xl mx-auto">
                                     {ideaDetails.questions?.map((q, idx) => (
@@ -2141,7 +2180,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                                 <button 
                                                     onClick={() => handleAddToChat(q)}
                                                     className="opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-white/10 rounded transition-all"
-                                                    title="Bespreken in Chat"
+                                                    title={texts.ADMIN_DASHBOARD.DETAIL.BTN_CHAT_DISCUSS}
                                                 >
                                                     <MessageSquare className="w-4 h-4 text-gray-400 hover:text-white" />
                                                 </button>
@@ -2157,15 +2196,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4">
                             <div className="p-4 bg-neon-purple/10 border border-neon-purple/20 rounded mb-4 text-neon-purple text-sm flex items-center">
                                 <Zap className="w-4 h-4 mr-2" />
-                                AI-simulatie van mogelijke antwoorden op basis van context.
+                                {texts.ADMIN_DASHBOARD.DETAIL.AI_SIMULATION_INFO}
                             </div>
                             {ideaDetails.questions?.map((q, idx) => (
                                 <div key={idx} className="bg-white/5 border border-white/10 p-6 rounded-lg">
-                                    <div className="text-gray-400 text-sm mb-2 font-mono">QUESTION {idx + 1}</div>
+                                    <div className="text-gray-400 text-sm mb-2 font-mono">{translate(texts.ADMIN_DASHBOARD.DETAIL.QUESTION_LABEL, { index: idx + 1 })}</div>
                                     <h4 className="text-white font-bold mb-4">{q}</h4>
                                     <div className="bg-black/30 border-l-4 border-neon-purple p-4 rounded-r">
                                         <p className="text-gray-300 italic">
-                                            "{ideaDetails.questionAnswers ? ideaDetails.questionAnswers[idx] : 'Analysing...'}"
+                                            "{ideaDetails.questionAnswers ? ideaDetails.questionAnswers[idx] : texts.ADMIN_DASHBOARD.DETAIL.ANALYZING}"
                                         </p>
                                     </div>
                                 </div>
@@ -2176,42 +2215,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                     {activeTab === 'BUSINESS_CASE' && (
                          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
-                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">Problem</h4>
+                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.PROBLEM_LABEL}</h4>
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-white font-bold text-lg">Probleemstelling</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.problemStatement || '')} className="text-gray-400 hover:text-neon-green transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                    <h3 className="text-white font-bold text-lg">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.PROBLEM_TITLE}</h3>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.problemStatement || '')} className="text-gray-400 hover:text-neon-green transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <p className="text-gray-400">{ideaDetails.businessCase?.problemStatement}</p>
                             </div>
                             <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
-                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">Solution</h4>
+                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.SOLUTION_LABEL}</h4>
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-white font-bold text-lg">Oplossing</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.proposedSolution || '')} className="text-gray-400 hover:text-neon-green transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                    <h3 className="text-white font-bold text-lg">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.SOLUTION_TITLE}</h3>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.proposedSolution || '')} className="text-gray-400 hover:text-neon-green transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <p className="text-gray-400">{ideaDetails.businessCase?.proposedSolution}</p>
                             </div>
                             <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
-                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">Strategy</h4>
+                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.STRATEGY_LABEL}</h4>
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-white font-bold text-lg">Strategische Fit</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.strategicFit || '')} className="text-gray-400 hover:text-neon-green transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                    <h3 className="text-white font-bold text-lg">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.STRATEGY_TITLE}</h3>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.strategicFit || '')} className="text-gray-400 hover:text-neon-green transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <p className="text-gray-400">{ideaDetails.businessCase?.strategicFit}</p>
                             </div>
                             <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
-                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">Finance</h4>
+                                <h4 className="text-neon-green font-mono text-xs uppercase mb-2">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.FINANCE_LABEL}</h4>
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-white font-bold text-lg">Financiële Impact</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.financialImpact || '')} className="text-gray-400 hover:text-neon-green transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                    <h3 className="text-white font-bold text-lg">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.FINANCE_TITLE}</h3>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.financialImpact || '')} className="text-gray-400 hover:text-neon-green transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <p className="text-gray-400">{ideaDetails.businessCase?.financialImpact}</p>
                             </div>
                              <div className="md:col-span-2 bg-brand-primary/5 border border-brand-primary/20 p-6 rounded-lg">
-                                <h4 className="text-brand-primary font-mono text-xs uppercase mb-2">Risk Analysis</h4>
+                                <h4 className="text-brand-primary font-mono text-xs uppercase mb-2">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.RISK_LABEL}</h4>
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-white font-bold text-lg">Risico's</h3>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.risks?.join('\n') || '')} className="text-gray-400 hover:text-brand-primary transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                    <h3 className="text-white font-bold text-lg">{texts.ADMIN_DASHBOARD.DETAIL.BUSINESS_CASE_SECTIONS.RISK_TITLE}</h3>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.businessCase?.risks?.join('\n') || '')} className="text-gray-400 hover:text-brand-primary transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4" /></button>
                                 </div>
                                 <ul className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {ideaDetails.businessCase?.risks?.map((risk, idx) => (
@@ -2231,12 +2270,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 <div className="flex items-center justify-between mb-4 text-orange-500">
                                     <div className="flex items-center">
                                         <AlertTriangle className="w-6 h-6 mr-2" />
-                                        <h3 className="text-xl font-bold">De Kritische Blik</h3>
+                                        <h3 className="text-xl font-bold">{texts.ADMIN_DASHBOARD.DETAIL.DEVILS_ADVOCATE.TITLE}</h3>
                                     </div>
                                     <button 
                                         onClick={() => handleAddToChat(ideaDetails.devilsAdvocate.critique)}
                                         className="p-1 hover:bg-white/10 rounded transition-all"
-                                        title="Bespreken in Chat"
+                                        title={texts.ADMIN_DASHBOARD.DETAIL.BTN_CHAT_DISCUSS}
                                     >
                                         <MessageSquare className="w-4 h-4 text-gray-400 hover:text-white" />
                                     </button>
@@ -2250,7 +2289,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
                                     <div className="flex items-center mb-4 text-gray-400">
                                         <EyeOff className="w-5 h-5 mr-2" />
-                                        <h4 className="font-bold">Blinde Vlekken</h4>
+                                        <h4 className="font-bold">{texts.ADMIN_DASHBOARD.DETAIL.DEVILS_ADVOCATE.BLIND_SPOTS}</h4>
                                     </div>
                                     <ul className="space-y-3">
                                         {ideaDetails.devilsAdvocate.blindSpots?.map((spot, idx) => (
@@ -2262,7 +2301,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                                 <button 
                                                     onClick={() => handleAddToChat(spot)}
                                                     className="opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-white/10 rounded transition-all"
-                                                    title="Bespreken in Chat"
+                                                    title={texts.ADMIN_DASHBOARD.DETAIL.BTN_CHAT_DISCUSS}
                                                 >
                                                     <MessageSquare className="w-3 h-3 text-gray-400 hover:text-white" />
                                                 </button>
@@ -2274,12 +2313,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                     <div className="flex items-center justify-between mb-4 text-gray-400">
                                         <div className="flex items-center">
                                             <Skull className="w-5 h-5 mr-2" />
-                                            <h4 className="font-bold">Pre-Mortem (Waarom faalde dit?)</h4>
+                                            <h4 className="font-bold">{texts.ADMIN_DASHBOARD.DETAIL.DEVILS_ADVOCATE.PRE_MORTEM}</h4>
                                         </div>
                                         <button 
                                             onClick={() => handleAddToChat(ideaDetails.devilsAdvocate.preMortem)}
                                             className="p-1 hover:bg-white/10 rounded transition-all"
-                                            title="Bespreken in Chat"
+                                            title={texts.ADMIN_DASHBOARD.DETAIL.BTN_CHAT_DISCUSS}
                                         >
                                             <MessageSquare className="w-4 h-4 text-gray-400 hover:text-white" />
                                         </button>
@@ -2297,15 +2336,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                              {/* Slogan Hero */}
                              <div className="bg-gradient-to-r from-pink-500/20 to-purple-600/20 border border-white/10 p-10 rounded-lg text-center">
                                  <div className="flex justify-center items-center mb-4 space-x-2">
-                                     <h4 className="text-xs font-mono text-pink-400 uppercase tracking-widest">Campagne Slogan</h4>
-                                     <button onClick={() => handleCopyToChat(ideaDetails.marketing.slogan)} className="text-gray-400 hover:text-pink-500 transition-colors" title="Kopieer"><MessageSquare className="w-3 h-3" /></button>
+                                     <h4 className="text-xs font-mono text-pink-400 uppercase tracking-widest">{texts.ADMIN_DASHBOARD.DETAIL.MARKETING.SLOGAN}</h4>
+                                     <button onClick={() => handleCopyToChat(ideaDetails.marketing.slogan)} className="text-gray-400 hover:text-pink-500 transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-3 h-3" /></button>
                                  </div>
                                  <h2 className="text-3xl md:text-5xl font-black text-white italic">
                                      "{ideaDetails.marketing.slogan}"
                                  </h2>
                                  <div className="mt-6 inline-flex items-center px-4 py-2 bg-black/30 rounded-full text-sm text-gray-300">
                                      <Target className="w-4 h-4 mr-2 text-pink-500" />
-                                     Doelgroep: {ideaDetails.marketing.targetAudience}
+                                     {texts.ADMIN_DASHBOARD.DETAIL.MARKETING.TARGET_AUDIENCE}: {ideaDetails.marketing.targetAudience}
                                  </div>
                              </div>
 
@@ -2315,16 +2354,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                      <div className="flex items-center mb-4 text-[#0077b5]">
                                          <Share2 className="w-5 h-5 mr-2" />
                                          <div className="flex justify-between items-center w-full">
-                                             <h3 className="font-bold">LinkedIn Post</h3>
-                                             <button onClick={() => handleCopyToChat(ideaDetails.marketing.linkedInPost)} className="text-[#0077b5] hover:text-white transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                             <h3 className="font-bold">{texts.ADMIN_DASHBOARD.DETAIL.MARKETING.LINKEDIN_POST}</h3>
+                                             <button onClick={() => handleCopyToChat(ideaDetails.marketing.linkedInPost)} className="text-[#0077b5] hover:text-white transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4" /></button>
                                          </div>
                                      </div>
                                      <div className="bg-white p-4 rounded text-black text-sm shadow-lg">
                                          <div className="flex items-center mb-3">
                                              <div className="w-8 h-8 bg-gray-300 rounded-full mr-2"></div>
                                              <div>
-                                                 <div className="font-bold text-xs">InnovateIQ Life</div>
-                                                 <div className="text-[10px] text-gray-500">Just now • 🌐</div>
+                                                 <div className="font-bold text-xs">{texts.ADMIN_DASHBOARD.DETAIL.MARKETING.BRAND_NAME}</div>
+                                                 <div className="text-[10px] text-gray-500">{texts.ADMIN_DASHBOARD.DETAIL.MARKETING.JUST_NOW}</div>
                                              </div>
                                          </div>
                                          <p className="whitespace-pre-line">{ideaDetails.marketing.linkedInPost}</p>
@@ -2336,8 +2375,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                      <div className="flex items-center mb-4 text-white">
                                          <Hash className="w-5 h-5 mr-2" />
                                          <div className="flex justify-between items-center w-full">
-                                             <h3 className="font-bold">Viral X / Tweet</h3>
-                                             <button onClick={() => handleCopyToChat(ideaDetails.marketing.viralTweet)} className="text-white hover:text-gray-400 transition-colors" title="Kopieer"><MessageSquare className="w-4 h-4" /></button>
+                                             <h3 className="font-bold">{texts.ADMIN_DASHBOARD.DETAIL.MARKETING.VIRAL_TWEET}</h3>
+                                             <button onClick={() => handleCopyToChat(ideaDetails.marketing.viralTweet)} className="text-white hover:text-gray-400 transition-colors" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4" /></button>
                                          </div>
                                      </div>
                                      <div className="bg-black border border-gray-800 p-4 rounded-xl text-white text-lg font-medium">
@@ -2353,9 +2392,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                             {!ideaDetails.pressRelease ? (
                                 <div className="bg-white/5 border border-white/10 p-10 rounded-lg text-center max-w-2xl mx-auto">
                                     <Share2 className="w-16 h-16 text-blue-500 mx-auto mb-6 opacity-50" />
-                                    <h3 className="text-2xl font-bold text-white mb-4">Genereer Persbericht</h3>
+                                    <h3 className="text-2xl font-bold text-white mb-4">{texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.GENERATE_TITLE}</h3>
                                     <p className="text-gray-400 mb-8">
-                                        Kies een stijl voor het persbericht en laat de AI een professioneel bericht schrijven.
+                                        {texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.GENERATE_DESC}
                                     </p>
                                     
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
@@ -2364,9 +2403,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             onChange={(e) => setPressReleaseStyle(e.target.value)}
                                             className="bg-black/50 border border-white/20 rounded-md px-4 py-3 text-white focus:outline-none focus:border-blue-500 w-full sm:w-64"
                                         >
-                                            <option value="zakelijk">Zakelijk</option>
-                                            <option value="spannend">Spannend</option>
-                                            <option value="humor">Humor</option>
+                                            {pressReleaseStyleOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
                                         </select>
                                         
                                         <button 
@@ -2377,12 +2416,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             {isGeneratingPressRelease ? (
                                                 <>
                                                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                                                    Bezig...
+                                                    {texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.GENERATING}
                                                 </>
                                             ) : (
                                                 <>
                                                     <Sparkles className="w-4 h-4 mr-2" />
-                                                    Genereren
+                                                    {texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.GENERATE}
                                                 </>
                                             )}
                                         </button>
@@ -2393,20 +2432,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 <button 
                                     onClick={() => setIdeaDetails({...ideaDetails, pressRelease: undefined})}
                                     className="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors"
-                                    title="Opnieuw genereren"
+                                    title={texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.REGENERATE}
                                 >
                                     <RotateCcw className="w-5 h-5" />
                                 </button>
                                 <div className="border-b-2 border-black pb-6 mb-6 flex justify-between items-end">
                                     <div>
-                                        <h4 className="text-xs font-sans font-bold uppercase tracking-widest text-gray-500 mb-1">VOOR ONMIDDELLIJKE PUBLICATIE</h4>
+                                        <h4 className="text-xs font-sans font-bold uppercase tracking-widest text-gray-500 mb-1">{texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.IMMEDIATE_RELEASE}</h4>
                                         <div className="text-sm font-sans text-gray-600">
                                             {ideaDetails.pressRelease.location} — {ideaDetails.pressRelease.date}
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                         <div className="text-2xl font-black font-sans text-brand-primary">IDEA</div>
-                                         <div className="text-xs font-sans text-gray-500">Persrelaties</div>
+                                         <div className="text-2xl font-black font-sans text-brand-primary">{texts.APP_NAME.MAIN.toUpperCase()}</div>
+                                         <div className="text-xs font-sans text-gray-500">{texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.MEDIA_RELATIONS}</div>
                                     </div>
                                 </div>
                                 
@@ -2421,14 +2460,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 <div className="mt-10 pt-6 border-t border-gray-300 text-center text-sm text-gray-500 font-sans">
                                     ###
                                     <br/><br/>
-                                    <strong>Over de Idea Processor</strong><br/>
-                                    De Idea Processor ontwikkelt cloud software voor kleine en middelgrote bedrijven en hun accountants. De producten automatiseren bedrijfsprocessen zoals financiën en HR.
+                                    <strong>{texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.ABOUT_TITLE}</strong><br/>
+                                    {texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.ABOUT_BODY}
                                 </div>
                              </div>
                             )}
                              {ideaDetails.pressRelease && (
                                 <div className="mt-4 flex justify-end max-w-4xl mx-auto">
-                                    <button onClick={() => handleCopyToChat(ideaDetails.pressRelease?.content || '')} className="text-gray-400 hover:text-white transition-colors flex items-center" title="Kopieer"><MessageSquare className="w-4 h-4 mr-2" /> Kopieer naar Chat</button>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.pressRelease?.content || '')} className="text-gray-400 hover:text-white transition-colors flex items-center" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4 mr-2" /> {texts.ADMIN_DASHBOARD.DETAIL.PRESS_RELEASE.COPY_TO_CHAT}</button>
                                 </div>
                              )}
                         </div>
@@ -2439,9 +2478,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                             {!ideaDetails.blogPost ? (
                                 <div className="bg-white/5 border border-white/10 p-10 rounded-lg text-center max-w-2xl mx-auto">
                                     <FileIcon className="w-16 h-16 text-yellow-500 mx-auto mb-6 opacity-50" />
-                                    <h3 className="text-2xl font-bold text-white mb-4">Genereer Blog Post</h3>
+                                    <h3 className="text-2xl font-bold text-white mb-4">{texts.ADMIN_DASHBOARD.DETAIL.BLOG.GENERATE_TITLE}</h3>
                                     <p className="text-gray-400 mb-8">
-                                        Kies een stijl voor de blog post en laat de AI een inspirerend artikel schrijven.
+                                        {texts.ADMIN_DASHBOARD.DETAIL.BLOG.GENERATE_DESC}
                                     </p>
                                     
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
@@ -2450,9 +2489,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             onChange={(e) => setBlogStyle(e.target.value)}
                                             className="bg-black/50 border border-white/20 rounded-md px-4 py-3 text-white focus:outline-none focus:border-blue-500 w-full sm:w-64"
                                         >
-                                            <option value="zakelijk">Zakelijk</option>
-                                            <option value="spannend">Spannend</option>
-                                            <option value="humor">Humor</option>
+                                            {blogStyleOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
                                         </select>
                                         
                                         <button 
@@ -2463,12 +2502,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             {isGeneratingBlog ? (
                                                 <>
                                                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                                                    Bezig...
+                                                    {texts.ADMIN_DASHBOARD.DETAIL.BLOG.GENERATING}
                                                 </>
                                             ) : (
                                                 <>
                                                     <Sparkles className="w-4 h-4 mr-2" />
-                                                    Genereren
+                                                    {texts.ADMIN_DASHBOARD.DETAIL.BLOG.GENERATE}
                                                 </>
                                             )}
                                         </button>
@@ -2479,7 +2518,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                 <button 
                                     onClick={() => setIdeaDetails({...ideaDetails, blogPost: undefined})}
                                     className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
-                                    title="Opnieuw genereren"
+                                    title={texts.ADMIN_DASHBOARD.DETAIL.BLOG.REGENERATE}
                                 >
                                     <RotateCcw className="w-5 h-5" />
                                 </button>
@@ -2488,8 +2527,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         E
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold text-white">Idea Tech Blog</h3>
-                                        <p className="text-xs text-gray-400">Innovatie & Technologie</p>
+                                        <h3 className="text-sm font-bold text-white">{texts.ADMIN_DASHBOARD.DETAIL.BLOG.BRAND}</h3>
+                                        <p className="text-xs text-gray-400">{texts.ADMIN_DASHBOARD.DETAIL.BLOG.CATEGORY}</p>
                                     </div>
                                 </div>
 
@@ -2508,7 +2547,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         <button className="text-gray-400 hover:text-white transition-colors"><Share2 className="w-5 h-5" /></button>
                                         <button className="text-gray-400 hover:text-white transition-colors"><MessageSquare className="w-5 h-5" /></button>
                                     </div>
-                                    <button onClick={() => handleCopyToChat(ideaDetails.blogPost?.content || '')} className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" title="Kopieer"><MessageSquare className="w-4 h-4 mr-2" /> Bespreek in Chat</button>
+                                    <button onClick={() => handleCopyToChat(ideaDetails.blogPost?.content || '')} className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" title={texts.COMMON.COPY}><MessageSquare className="w-4 h-4 mr-2" /> {texts.ADMIN_DASHBOARD.DETAIL.BLOG.DISCUSS_IN_CHAT}</button>
                                 </div>
                              </div>
                             )}
@@ -2519,26 +2558,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                             {!ideaDetails.pptOutline ? (
                                 <div className="bg-white/5 border border-white/10 p-10 rounded-lg text-center max-w-2xl mx-auto">
-                                    <Presentation className="w-16 h-16 text-exact-red mx-auto mb-6 opacity-50" />
-                                    <h3 className="text-2xl font-bold text-white mb-4">Genereer PowerPoint Deck</h3>
+                                    <Presentation className="w-16 h-16 text-brand-primary mx-auto mb-6 opacity-50" />
+                                    <h3 className="text-2xl font-bold text-white mb-4">{texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.GENERATE_TITLE}</h3>
                                     <p className="text-gray-400 mb-8">
-                                        Maak een volledige presentatie (12 dia's) inclusief sprekersnotities.
+                                        {texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.GENERATE_DESC}
                                     </p>
                                     
                                     <button 
                                         onClick={handleGeneratePPT}
                                         disabled={isGeneratingPPT}
-                                        className="px-8 py-3 bg-exact-red hover:bg-red-700 text-white font-bold rounded-md transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+                                        className="px-8 py-3 bg-brand-primary hover:opacity-90 text-white font-bold rounded-md transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
                                     >
                                         {isGeneratingPPT ? (
                                             <>
                                                 <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                                                Bezig...
+                                                {texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.GENERATING}
                                             </>
                                         ) : (
                                             <>
                                                 <Sparkles className="w-4 h-4 mr-2" />
-                                                Genereren
+                                                {texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.GENERATE}
                                             </>
                                         )}
                                     </button>
@@ -2547,8 +2586,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                              <div className="max-w-4xl mx-auto">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-2xl font-bold text-white flex items-center">
-                                        <Presentation className="mr-3 text-exact-red" />
-                                        Presentatie Overzicht ({ideaDetails.pptOutline.slides.length} dia's)
+                                        <Presentation className="mr-3 text-brand-primary" />
+                                        {translate(texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.OVERVIEW, { count: ideaDetails.pptOutline.slides.length })}
                                     </h3>
                                     <div className="flex gap-4">
                                         <button 
@@ -2556,12 +2595,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             className="px-6 py-2 bg-neon-green/10 hover:bg-neon-green/20 text-neon-green font-bold rounded flex items-center transition-all border border-neon-green/20"
                                         >
                                             <Play className="w-4 h-4 mr-2" />
-                                            Presenteer
+                                            {texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.PRESENT}
                                         </button>
                                         <button 
                                             onClick={() => setIdeaDetails({...ideaDetails, pptOutline: undefined})}
                                             className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
-                                            title="Reset"
+                                            title={texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.RESET}
                                         >
                                             <RotateCcw className="w-5 h-5" />
                                         </button>
@@ -2570,7 +2609,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                             className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded flex items-center transition-all border border-white/20"
                                         >
                                             <Download className="w-4 h-4 mr-2" />
-                                            Download .PPTX
+                                            {texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.DOWNLOAD}
                                         </button>
                                     </div>
                                 </div>
@@ -2655,7 +2694,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                                 
                                                 {slide.speakerNotes && (
                                                     <div className="bg-black/30 p-4 rounded text-sm text-gray-500 italic border-l-2 border-brand-primary/50">
-                                                        <span className="text-brand-primary font-bold not-italic mr-2">Speaker Notes:</span>
+                                                        <span className="text-brand-primary font-bold not-italic mr-2">{texts.ADMIN_DASHBOARD.DETAIL.POWERPOINT.SPEAKER_NOTES}</span>
                                                         {slide.speakerNotes}
                                                     </div>
                                                 )}
@@ -2677,7 +2716,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                             className="whitespace-nowrap px-6 py-3 bg-neon-green/10 text-neon-green border border-neon-green/50 hover:bg-neon-green/20 font-bold rounded flex items-center transition-all"
                         >
                             <Play className="mr-2 w-4 h-4" />
-                            Start Vervolg Sessie
+                            {texts.ADMIN_DASHBOARD.DETAIL.START_FOLLOW_UP}
                         </button>
                         <button 
                             onClick={() => setShowPBIModal(true)}
@@ -2747,11 +2786,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
               </div>
 
               <h2 className="text-3xl font-black text-white mb-4 tracking-tight">
-                {isGeneratingFollowUp ? "Vervolgvraag genereren..." : (isGeneratingDetails ? TEXTS.ADMIN_DASHBOARD.DETAIL.LOADING : TEXTS.ADMIN_DASHBOARD.ANALYSIS.LOADING)}
+                {isGeneratingFollowUp ? texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.GENERATING : (isGeneratingDetails ? TEXTS.ADMIN_DASHBOARD.DETAIL.LOADING : TEXTS.ADMIN_DASHBOARD.ANALYSIS.LOADING)}
               </h2>
               
               <p className="text-gray-400 mb-8 font-mono text-sm uppercase tracking-widest">
-                AI engine is working on your innovation plan...
+                {texts.ADMIN_DASHBOARD.DETAIL.LOADING_SUBTITLE}
               </p>
 
               <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 shadow-inner">
@@ -2762,9 +2801,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
               </div>
               
               <div className="mt-4 flex justify-between text-[10px] font-mono text-gray-600 uppercase tracking-tighter">
-                <span>Initializing AI</span>
-                <span>Analyzing Vibe</span>
-                <span>Generating Roadmap</span>
+                <span>{texts.ADMIN_DASHBOARD.DETAIL.LOADING_STEP_1}</span>
+                <span>{texts.ADMIN_DASHBOARD.DETAIL.LOADING_STEP_2}</span>
+                <span>{texts.ADMIN_DASHBOARD.DETAIL.LOADING_STEP_3}</span>
               </div>
             </div>
           </div>
@@ -2786,10 +2825,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         onConfirm={confirmCancelSession}
-        title="Sessie Annuleren"
-        message="Weet je zeker dat je de sessie wilt annuleren? Alle verzamelde ideeën en data van deze sessie gaan definitief verloren."
-        confirmText="Ja, Annuleren"
-        cancelText="Nee, Terug"
+        title={texts.ADMIN_DASHBOARD.SESSION_ALERTS.CANCEL_TITLE}
+        message={texts.ADMIN_DASHBOARD.SESSION_ALERTS.CANCEL_MESSAGE}
+        confirmText={texts.ADMIN_DASHBOARD.SESSION_ALERTS.CANCEL_CONFIRM}
+        cancelText={texts.ADMIN_DASHBOARD.SESSION_ALERTS.CANCEL_BACK}
         variant="danger"
       />
 
@@ -2801,27 +2840,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 
                 <h2 className="text-3xl font-black text-white mb-6 flex items-center">
                     <Zap className="mr-3 text-neon-green animate-pulse" />
-                    Vervolg Sessie Starten
+                    {texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.TITLE}
                 </h2>
 
                 <p className="text-gray-400 mb-6">
-                    De AI heeft een vervolgvraag gegenereerd op basis van het geselecteerde idee. 
-                    Je kunt de vraag hieronder aanpassen voordat je de nieuwe sessie start.
+                    {texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.DESC}
                 </p>
 
                 <div className="bg-black/40 border border-white/10 rounded-lg p-6 mb-8 relative group">
-                    <label className="block text-xs font-mono text-neon-green uppercase tracking-widest mb-3">Brainstorm Vraag</label>
+                    <label className="block text-xs font-mono text-neon-green uppercase tracking-widest mb-3">{texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.LABEL}</label>
                     {isGeneratingFollowUp ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="w-8 h-8 border-2 border-neon-green border-t-transparent rounded-full animate-spin mr-3"></div>
-                            <span className="text-neon-green font-mono animate-pulse">Vraag genereren...</span>
+                            <span className="text-neon-green font-mono animate-pulse">{texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.GENERATING}</span>
                         </div>
                     ) : (
                         <textarea 
                             value={followUpQuestion}
                             onChange={(e) => setFollowUpQuestion(e.target.value)}
                             className="w-full bg-transparent border-none text-xl text-white focus:ring-0 resize-none min-h-[120px] font-medium leading-relaxed"
-                            placeholder="Typ hier de nieuwe brainstorm vraag..."
+                            placeholder={texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.PLACEHOLDER}
                         />
                     )}
                     <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2832,7 +2870,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg mb-8 flex items-start">
                     <AlertTriangle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-red-200/70">
-                        <strong className="text-red-400">Let op:</strong> Bij het starten van een vervolgsessie worden alle huidige ideeën uit de database verwijderd om plaats te maken voor de nieuwe brainstorm. Zorg dat je eventuele exports (PBI/PDF) al hebt gedaan.
+                        <strong className="text-red-400">{texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.WARNING_TITLE}</strong> {texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.WARNING_BODY}
                     </p>
                 </div>
 
@@ -2841,7 +2879,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         onClick={() => setShowFollowUpModal(false)}
                         className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-lg transition-all border border-white/10"
                     >
-                        Annuleren
+                        {texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.CANCEL}
                     </button>
                     <button 
                         onClick={handleStartFollowUpSession}
@@ -2861,12 +2899,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         {isStartingFollowUp ? (
                             <>
                                 <div className="animate-spin mr-3 h-5 w-5 border-2 border-black border-t-transparent rounded-full" />
-                                <span>{Math.round(followUpProgress)}% Bezig met starten...</span>
+                                <span>{translate(texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.STARTING, { progress: Math.round(followUpProgress) })}</span>
                             </>
                         ) : (
                             <>
                                 <Play className="mr-2 w-5 h-5 fill-current" />
-                                Start Vervolg Sessie
+                                {texts.ADMIN_DASHBOARD.DETAIL.FOLLOW_UP.START}
                             </>
                         )}
                     </button>
@@ -2963,24 +3001,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         pbi.priority?.toLowerCase().includes('should') ? 'bg-orange-500/10 text-orange-500 border-orange-500/30' :
                                         'bg-blue-500/10 text-blue-500 border-blue-500/30'
                                     }`}>
-                                        {pbi.priority || 'Medium'}
+                                        {pbi.priority || (language === 'en' ? 'Medium' : 'Medium')}
                                     </span>
                                     <span className="bg-black/40 border border-white/20 px-3 py-1 rounded text-xs font-bold text-neon-purple">
-                                        {pbi.storyPoints} Story Points
+                                        {pbi.storyPoints} {texts.ADMIN_DASHBOARD.DETAIL.PBI_POINTS}
                                     </span>
                                 </div>
                             </div>
                             
                             <div className="space-y-4">
                                 <div className="bg-black/20 p-4 rounded border-l-2 border-neon-purple/50">
-                                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">User Story</h4>
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">{texts.ADMIN_DASHBOARD.DETAIL.PBI.USER_STORY}</h4>
                                     <p className="text-gray-200 text-sm leading-relaxed">{pbi.userStory || pbi.description}</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                     <div>
                                         <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center">
-                                            <Check className="w-3 h-3 mr-1 text-neon-green" /> Acceptatiecriteria
+                                            <Check className="w-3 h-3 mr-1 text-neon-green" /> {texts.ADMIN_DASHBOARD.DETAIL.PBI.ACCEPTANCE_CRITERIA}
                                         </h4>
                                         <ul className="space-y-1">
                                             {pbi.acceptanceCriteria?.map((ac, i) => (
@@ -2993,24 +3031,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                     </div>
                                     <div className="space-y-3">
                                         <div>
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Business Value</h4>
-                                            <p className="text-gray-400 italic">{pbi.businessValue || 'Niet gespecificeerd'}</p>
+                                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">{texts.ADMIN_DASHBOARD.DETAIL.PBI.BUSINESS_VALUE}</h4>
+                                            <p className="text-gray-400 italic">{pbi.businessValue || texts.ADMIN_DASHBOARD.DETAIL.PBI.BUSINESS_VALUE_EMPTY}</p>
                                         </div>
                                         <div>
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Dependencies</h4>
+                                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">{texts.ADMIN_DASHBOARD.DETAIL.PBI.DEPENDENCIES}</h4>
                                             <div className="flex flex-wrap gap-1">
                                                 {pbi.dependencies?.map((dep, i) => (
                                                     <span key={i} className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-gray-500 border border-white/10">
                                                         {dep}
                                                     </span>
-                                                )) || <span className="text-gray-600">Geen</span>}
+                                                )) || <span className="text-gray-600">{texts.ADMIN_DASHBOARD.DETAIL.PBI.DEPENDENCIES_EMPTY}</span>}
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                                            <span className="text-xs font-bold text-gray-500 uppercase">Definition of Ready</span>
+                                            <span className="text-xs font-bold text-gray-500 uppercase">{texts.ADMIN_DASHBOARD.DETAIL.PBI.DEFINITION_OF_READY}</span>
                                             <span className={`flex items-center text-xs ${pbi.dorCheck ? 'text-neon-green' : 'text-gray-500'}`}>
                                                 {pbi.dorCheck ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
-                                                {pbi.dorCheck ? 'READY' : 'PENDING'}
+                                                {pbi.dorCheck ? texts.ADMIN_DASHBOARD.DETAIL.PBI.READY : texts.ADMIN_DASHBOARD.DETAIL.PBI.PENDING}
                                             </span>
                                         </div>
                                     </div>
@@ -3025,7 +3063,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                         onClick={handleExportCSV}
                         className="px-6 py-3 bg-neon-purple text-black font-bold rounded hover:bg-purple-400 transition-colors flex items-center"
                     >
-                        <Download className="mr-2 w-4 h-4" /> Export to CSV
+                        <Download className="mr-2 w-4 h-4" /> {texts.ADMIN_DASHBOARD.DETAIL.PBI.EXPORT_CSV}
                     </button>
                 </div>
             </div>
@@ -3072,13 +3110,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                 
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center flex-shrink-0">
                     <FolderOpen className="mr-3 text-brand-primary" />
-                    Laad Eerdere Sessie
+                    {texts.ADMIN_DASHBOARD.SETUP.LOAD_SESSION_TITLE}
                 </h2>
 
                 <div className="overflow-y-auto flex-1 pr-2">
                     {savedSessions.length === 0 ? (
                         <div className="text-center text-gray-500 py-10">
-                            Geen opgeslagen sessies gevonden.
+                            {texts.ADMIN_DASHBOARD.SETUP.LOAD_SESSION_EMPTY}
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
@@ -3092,8 +3130,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentAccess
                                         <h4 className="font-bold text-white">{session.name || session.question}</h4>
                                         <p className="text-sm text-gray-400 mt-1 line-clamp-1">{session.question}</p>
                                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 font-mono">
-                                            <span>{new Date(session.timestamp).toLocaleString('nl-NL')}</span>
-                                            <span>{session.ideas.length} Ideeën</span>
+                                            <span>{new Date(session.timestamp).toLocaleString(locale)}</span>
+                                            <span>{translate(texts.ADMIN_DASHBOARD.SETUP.LOAD_SESSION_IDEAS, { count: session.ideas.length })}</span>
                                         </div>
                                     </div>
                                     <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white" />

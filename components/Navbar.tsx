@@ -1,12 +1,13 @@
 import React from 'react';
 import { Menu, X } from 'lucide-react';
-import { TEXTS } from '../constants/texts';
+import { useTexts } from '../services/i18n';
 
 interface NavbarProps {
   onAdminLogin: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onAdminLogin }) => {
+  const texts = useTexts();
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -16,11 +17,11 @@ const Navbar: React.FC<NavbarProps> = ({ onAdminLogin }) => {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <span className="font-sans font-black text-2xl tracking-tighter group flex items-baseline">
-                <span className="text-brand-primary text-3xl">{TEXTS.APP_NAME.PREFIX}</span> 
-                <span className="ml-1">{TEXTS.APP_NAME.MAIN}</span> 
-                <span className="text-gray-400 font-light ml-1">{TEXTS.APP_NAME.SUFFIX}</span>
+                <span className="text-brand-primary text-3xl">{texts.APP_NAME.PREFIX}</span> 
+                <span className="ml-1">{texts.APP_NAME.MAIN}</span> 
+                <span className="text-gray-400 font-light ml-1">{texts.APP_NAME.SUFFIX}</span>
                 <span className="ml-2 text-[10px] font-mono text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {TEXTS.APP_NAME.VERSION}
+                  {texts.APP_NAME.VERSION}
                 </span>
               </span>
             </div>
@@ -30,7 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ onAdminLogin }) => {
               onClick={onAdminLogin}
               className="bg-white/5 hover:bg-white/10 text-white border border-white/20 px-4 py-2 rounded-sm text-sm font-mono transition-all hover:border-brand-primary/50"
             >
-              {TEXTS.NAV.ADMIN_LOGIN}
+              {texts.NAV.ADMIN_LOGIN}
             </button>
           </div>
           <div className="-mr-2 flex md:hidden">
@@ -49,7 +50,7 @@ const Navbar: React.FC<NavbarProps> = ({ onAdminLogin }) => {
         <div className="md:hidden bg-brand-panel border-b border-white/10">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <button onClick={onAdminLogin} className="text-brand-primary block px-3 py-2 rounded-md text-base font-bold w-full text-left">
-              {TEXTS.NAV.LOGIN}
+              {texts.NAV.LOGIN}
             </button>
           </div>
         </div>

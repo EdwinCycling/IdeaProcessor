@@ -1,24 +1,19 @@
-
-import { GoogleGenAI } from '@google/genai';
-import { functions } from './firebase';
-import { httpsCallable } from 'firebase/functions';
 import { Idea, AIAnalysisResult, IdeaDetails, Cluster } from '../types';
+import { AppLanguage, getTexts, LANGUAGE_STORAGE_KEY } from '../constants/texts';
 
-// Helper to sanitize input to prevent basic injection attempts or control characters
-const sanitizeInput = (text: string): string => {
-  return text
-    .replace(/\\/g, '\\\\') // Escape backslashes
-    .replace(/"/g, '\\"')   // Escape quotes
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, "") // Remove control characters
-    .trim();
+const getCurrentLanguage = (): AppLanguage => {
+  const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) as AppLanguage | null;
+  return storedLanguage === 'en' ? 'en' : 'nl';
 };
+
+const getCurrentTexts = () => getTexts(getCurrentLanguage());
 
 export const clusterIdeas = async (context: string, ideas: Idea[]): Promise<Cluster[]> => {
   try {
     const response = await fetch('/api/cluster-ideas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context, ideas })
+      body: JSON.stringify({ context, ideas, language: getCurrentLanguage() })
     });
 
     if (!response.ok) {
@@ -41,7 +36,7 @@ export const analyzeIdeas = async (context: string, ideas: Idea[]): Promise<AIAn
           headers: {
               'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ context, ideas })
+          body: JSON.stringify({ context, ideas, language: getCurrentLanguage() })
       });
 
       if (!response.ok) {
@@ -61,13 +56,20 @@ export const analyzeIdeas = async (context: string, ideas: Idea[]): Promise<AIAn
   // Fallback / Mock
   console.warn("Using Mock Data (Backend Failed)");
   return new Promise((resolve) => {
+    const language = getCurrentLanguage();
     setTimeout(() => {
       resolve({
-        summary: "De ingediende ideeën focussen sterk op duurzaamheid door digitalisering en hergebruik. Er is een duidelijke wens om processen slimmer te maken met technologie (AI, AR) en verspilling tegen te gaan.",
+        summary: language === 'en'
+          ? 'The submitted ideas focus strongly on sustainability through digitization and reuse. There is a clear desire to make processes smarter with technology and reduce waste.'
+          : 'De ingediende ideeën focussen sterk op duurzaamheid door digitalisering en hergebruik. Er is een duidelijke wens om processen slimmer te maken met technologie en verspilling tegen te gaan.',
         topIdeas: ideas.slice(0, 3), 
-        headline: "Medewerkers Pleiten Voor High-Tech Duurzaamheid",
+        headline: language === 'en'
+          ? 'Employees Advocate High-Tech Sustainability'
+          : 'Medewerkers Pleiten Voor High-Tech Duurzaamheid',
         innovationScore: 87,
-        keywords: ["Circulariteit", "AI Automatisering", "Augmented Reality", "Kostenbesparing"]
+        keywords: language === 'en'
+          ? ["Circularity", "AI Automation", "Augmented Reality", "Cost Reduction"]
+          : ["Circulariteit", "AI Automatisering", "Augmented Reality", "Kostenbesparing"]
       });
     }, 2000);
   });
@@ -94,7 +96,7 @@ export const chatWithIdeaProfessor = async (
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ history, currentRole, context, idea, analysis })
+        body: JSON.stringify({ history, currentRole, context, idea, analysis, language: getCurrentLanguage() })
     });
 
     if (!response.ok) {
@@ -108,7 +110,7 @@ export const chatWithIdeaProfessor = async (
 
   } catch (error) {
     console.error("Chat generation failed", error);
-    return "Er is een fout opgetreden in de verbinding met de Professor. Probeer het later opnieuw.";
+    return getCurrentTexts().CHAT.CONNECTION_ERROR;
   }
 };
 
@@ -118,13 +120,17 @@ export const generateBlog = async (context: string, idea: Idea, style: string): 
     const response = await fetch('/api/generate-blog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context, idea, style })
+        body: JSON.stringify({ context, idea, style, language: getCurrentLanguage() })
     });
     if (!response.ok) throw new Error("Blog generation failed");
     return await response.json();
   } catch (error) {
     console.error("Blog generation failed:", error);
-    return { title: "Blog Generatie Mislukt", content: "Probeer het later opnieuw." };
+    const language = getCurrentLanguage();
+    return {
+      title: language === 'en' ? 'Blog Generation Failed' : 'Blog Generatie Mislukt',
+      content: language === 'en' ? 'Please try again later.' : 'Probeer het later opnieuw.'
+    };
   }
 };
 
@@ -133,13 +139,19 @@ export const generatePressRelease = async (context: string, idea: Idea, style: s
     const response = await fetch('/api/generate-press-release', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context, idea, style })
+        body: JSON.stringify({ context, idea, style, language: getCurrentLanguage() })
     });
     if (!response.ok) throw new Error("Press release generation failed");
     return await response.json();
   } catch (error) {
     console.error("Press release generation failed:", error);
-    return { title: "Persbericht Generatie Mislukt", content: "Probeer het later opnieuw.", date: "Zomer 2026", location: "Delft" };
+    const language = getCurrentLanguage();
+    return {
+      title: language === 'en' ? 'Press Release Generation Failed' : 'Persbericht Generatie Mislukt',
+      content: language === 'en' ? 'Please try again later.' : 'Probeer het later opnieuw.',
+      date: language === 'en' ? 'Summer 2026' : 'Zomer 2026',
+      location: 'Delft'
+    };
   }
 };
 
@@ -148,7 +160,7 @@ export const generatePPTContent = async (context: string, idea: Idea): Promise<{
     const response = await fetch('/api/generate-ppt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context, idea })
+        body: JSON.stringify({ context, idea, language: getCurrentLanguage() })
     });
     if (!response.ok) throw new Error("PPT generation failed");
     return await response.json();
@@ -166,7 +178,7 @@ export const generateIdeaDetails = async (context: string, idea: Idea): Promise<
          headers: {
              'Content-Type': 'application/json'
          },
-         body: JSON.stringify({ context, idea })
+         body: JSON.stringify({ context, idea, language: getCurrentLanguage() })
      });
 
      if (!response.ok) {
@@ -179,28 +191,27 @@ export const generateIdeaDetails = async (context: string, idea: Idea): Promise<
      return result as IdeaDetails;
   } catch (error) {
       console.error("Detail generation failed (Local API)", error);
+      const language = getCurrentLanguage();
       // Fallback to basic structure if fetch fails
       return {
-          rationale: "Kon geen analyse genereren (Server Error).",
-          questions: ["Fout bij ophalen vragen"],
-          questionAnswers: ["Fout bij ophalen antwoorden"],
-          steps: ["Probeer het later opnieuw"],
+          rationale: language === 'en' ? 'Could not generate analysis (Server Error).' : 'Kon geen analyse genereren (Server Error).',
+          questions: [language === 'en' ? 'Error fetching questions' : 'Fout bij ophalen vragen'],
+          questionAnswers: [language === 'en' ? 'Error fetching answers' : 'Fout bij ophalen antwoorden'],
+          steps: [language === 'en' ? 'Please try again later' : 'Probeer het later opnieuw'],
           pbis: [],
           businessCase: { problemStatement: "N/A", proposedSolution: "N/A", strategicFit: "N/A", financialImpact: "N/A", risks: [] },
           devilsAdvocate: { critique: "N/A", blindSpots: [], preMortem: "N/A" },
           marketing: { slogan: "N/A", linkedInPost: "N/A", viralTweet: "N/A", targetAudience: "N/A" },
           pressRelease: {
-             title: "Persbericht Generatie Mislukt",
-             content: "Er is een fout opgetreden bij het genereren van het persbericht. Controleer de server logs.",
-             date: "Zomer 2026",
+             title: language === 'en' ? 'Press Release Generation Failed' : 'Persbericht Generatie Mislukt',
+             content: language === 'en' ? 'An error occurred while generating the press release. Check the server logs.' : 'Er is een fout opgetreden bij het genereren van het persbericht. Controleer de server logs.',
+             date: language === 'en' ? 'Summer 2026' : 'Zomer 2026',
              location: "Delft"
           },
           blogPost: {
-             title: "Blog Generatie Mislukt",
-             content: "Er is een fout opgetreden bij het genereren van de blogpost."
+             title: language === 'en' ? 'Blog Generation Failed' : 'Blog Generatie Mislukt',
+             content: language === 'en' ? 'An error occurred while generating the blog post.' : 'Er is een fout opgetreden bij het genereren van de blogpost.'
           }
       };
   }
 };
-
-

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Calendar, MessageSquare, Check, Layers, Sparkles, Edit2, Save, User } from 'lucide-react';
+import { X, Calendar, Check, Layers, Sparkles, Edit2, Save, User } from 'lucide-react';
 import { Idea, Cluster } from '../types';
+import { useLanguage, useTexts } from '../services/i18n';
 
 interface ClusterIdeasModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
   isClustering,
   onSelectCluster
 }) => {
+  const texts = useTexts();
+  const { locale, translate } = useLanguage();
   const [clusters, setClusters] = useState<Cluster[]>(initialClusters);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ name: string; summary: string }>({ name: '', summary: '' });
@@ -55,7 +58,7 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
     }
   };
 
-  const today = new Date().toLocaleDateString('nl-NL', {
+  const today = new Date().toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -81,10 +84,10 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-white leading-tight flex items-center">
               <Layers className="mr-3 w-8 h-8 text-neon-purple" />
-              Geclusterde Ideeën
+              {texts.CLUSTERS.TITLE}
             </h2>
             <p className="text-gray-400 mt-2">
-              AI heeft de inzendingen geanalyseerd en samengevoegd tot krachtige concepten.
+              {texts.CLUSTERS.SUBTITLE}
             </p>
           </div>
         </div>
@@ -106,10 +109,10 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
                     
                     <div className="text-center max-w-md mx-auto space-y-3">
                         <h3 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-neon-purple to-neon-cyan animate-pulse">
-                            Ideeën worden samengevoegd...
+                            {texts.CLUSTERS.MERGING}
                         </h3>
                         <p className="text-gray-400 text-lg font-light">
-                            Onze AI analyseert <span className="text-white font-bold">{ideas.length}</span> inzendingen op patronen en synergie.
+                            {translate(texts.CLUSTERS.MERGING_DESC, { count: ideas.length })}
                         </p>
                         
                         {/* Fake progress bar */}
@@ -123,7 +126,7 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
                 {clusters.length === 0 ? (
                   <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500">
                     <Layers size={48} className="mb-4 opacity-20" />
-                    <p className="text-xl">Geen clusters gevonden.</p>
+                    <p className="text-xl">{texts.CLUSTERS.EMPTY}</p>
                   </div>
                 ) : (
                   clusters.map((cluster) => {
@@ -139,13 +142,13 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
                       <div className="p-6 pb-4 bg-gradient-to-b from-white/5 to-transparent">
                           <div className="flex justify-between items-start mb-4">
                             <span className="text-xs font-bold text-neon-purple bg-neon-purple/10 px-2 py-1 rounded border border-neon-purple/20">
-                              {originalIdeas.length} {originalIdeas.length === 1 ? 'INZENDING' : 'INZENDINGEN'}
+                              {originalIdeas.length} {originalIdeas.length === 1 ? texts.CLUSTERS.SUBMISSIONS_SINGLE : texts.CLUSTERS.SUBMISSIONS_PLURAL}
                             </span>
                             {!isEditing ? (
                                 <button 
                                     onClick={() => handleStartEdit(cluster)}
                                     className="text-gray-500 hover:text-white transition-colors"
-                                    title="Bewerk Cluster"
+                                    title={texts.CLUSTERS.EDIT_CLUSTER}
                                 >
                                     <Edit2 className="w-4 h-4" />
                                 </button>
@@ -154,7 +157,7 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
                                     onClick={handleSaveEdit}
                                     className="text-neon-green hover:text-green-400 transition-colors flex items-center text-xs font-bold uppercase tracking-wider"
                                 >
-                                    <Save className="w-4 h-4 mr-1" /> Opslaan
+                                    <Save className="w-4 h-4 mr-1" /> {texts.CLUSTERS.SAVE}
                                 </button>
                             )}
                           </div>
@@ -195,14 +198,14 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
                             className="w-full py-3 bg-neon-purple hover:bg-purple-600 text-white text-xs font-bold rounded flex items-center justify-center transition-all uppercase tracking-widest shadow-lg shadow-purple-900/20 group-hover:scale-[1.02]"
                           >
                             <Check className="w-4 h-4 mr-2" />
-                            Selecteer Concept
+                            {texts.CLUSTERS.SELECT_CONCEPT}
                           </button>
                       </div>
 
                       {/* Original Ideas Visuals */}
                       <div className="flex-1 bg-black/20 p-4 border-t border-white/5">
                           <h5 className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-3 flex items-center">
-                              <Sparkles className="w-3 h-3 mr-1" /> Gebaseerd op
+                              <Sparkles className="w-3 h-3 mr-1" /> {texts.CLUSTERS.BASED_ON}
                           </h5>
                           <div className="space-y-3">
                               {originalIdeas.map((idea) => (
@@ -239,7 +242,7 @@ const ClusterIdeasModal: React.FC<ClusterIdeasModalProps> = ({
 
         <div className="flex-shrink-0 p-4 bg-black/40 border-t border-white/5 text-center">
           <p className="text-[10px] text-gray-600 font-mono">
-            CLUSTERS: {clusters.length}
+            {translate(texts.CLUSTERS.CLUSTER_COUNT, { count: clusters.length })}
           </p>
         </div>
       </div>

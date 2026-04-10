@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Play } from 'lucide-react';
 import { IdeaDetails } from '../types';
+import { useLanguage, useTexts } from '../services/i18n';
 
 interface PowerPointViewerModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface PowerPointViewerModalProps {
 }
 
 const PowerPointViewerModal: React.FC<PowerPointViewerModalProps> = ({ isOpen, onClose, ideaDetails, ideaName }) => {
+  const texts = useTexts();
+  const { translate } = useLanguage();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -98,14 +101,14 @@ const PowerPointViewerModal: React.FC<PowerPointViewerModalProps> = ({ isOpen, o
             <Play className="w-5 h-5 text-brand-primary mr-2" />
             <span className="opacity-80">{ideaName}</span>
             <span className="mx-2 text-gray-500">/</span>
-            <span className="text-sm text-gray-400">Slide {currentSlideIndex + 1} van {slides.length}</span>
+            <span className="text-sm text-gray-400">{translate(texts.POWERPOINT.SLIDE_OF, { current: currentSlideIndex + 1, total: slides.length })}</span>
         </div>
         
         <div className="flex items-center space-x-4">
             <button 
                 onClick={toggleFullscreen}
                 className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
-                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                title={isFullscreen ? texts.POWERPOINT.EXIT_FULLSCREEN : texts.POWERPOINT.ENTER_FULLSCREEN}
             >
                 {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
             </button>
@@ -123,10 +126,10 @@ const PowerPointViewerModal: React.FC<PowerPointViewerModalProps> = ({ isOpen, o
         {/* Slide Master Background Elements */}
         <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary z-20"></div>
         <div className="absolute top-6 left-10 text-[10px] font-mono text-gray-600 tracking-widest uppercase">
-          Idea Processor // AI GENERATED
+          {texts.POWERPOINT.AI_GENERATED}
         </div>
         <div className="absolute bottom-4 left-8 right-8 h-px bg-gray-200"></div>
-        <div className="absolute bottom-1 right-8 text-[10px] text-gray-400 font-sans">IDEA PROCESSOR</div>
+        <div className="absolute bottom-1 right-8 text-[10px] text-gray-400 font-sans">{texts.POWERPOINT.BRAND}</div>
 
         {/* Slide Content */}
         <div className="flex-1 p-12 flex flex-col relative z-10">
@@ -143,7 +146,7 @@ const PowerPointViewerModal: React.FC<PowerPointViewerModalProps> = ({ isOpen, o
                     </div>
                 ) : (
                     <div className="flex items-center justify-center h-full text-gray-400 italic">
-                        Geen inhoud voor deze slide.
+                        {texts.POWERPOINT.NO_CONTENT}
                     </div>
                 )}
             </div>
@@ -165,7 +168,7 @@ const PowerPointViewerModal: React.FC<PowerPointViewerModalProps> = ({ isOpen, o
                 <button
                     key={idx}
                     onClick={() => setCurrentSlideIndex(idx)}
-                    className={`w-3 h-3 rounded-full transition-all ${idx === currentSlideIndex ? 'bg-exact-red scale-125' : 'bg-gray-600 hover:bg-gray-400'}`}
+                    className={`w-3 h-3 rounded-full transition-all ${idx === currentSlideIndex ? 'bg-brand-primary scale-125' : 'bg-gray-600 hover:bg-gray-400'}`}
                 />
             ))}
         </div>

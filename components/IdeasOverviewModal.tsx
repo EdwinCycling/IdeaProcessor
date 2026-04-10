@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X, Calendar, MessageSquare, Check } from 'lucide-react';
 import { Idea } from '../types';
+import { useLanguage, useTexts } from '../services/i18n';
 
 interface IdeasOverviewModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
   question,
   onSelectIdea
 }) => {
+  const texts = useTexts();
+  const { locale, translate } = useLanguage();
   // Lock scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -30,7 +33,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
 
   if (!isOpen) return null;
 
-  const today = new Date().toLocaleDateString('nl-NL', {
+  const today = new Date().toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -55,7 +58,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
               {today}
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-white leading-tight">
-              {question || "Alle Inzendingen"}
+              {question || texts.OVERVIEW.TITLE}
             </h2>
           </div>
         </div>
@@ -66,7 +69,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
             {ideas.length === 0 ? (
               <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500">
                 <MessageSquare size={48} className="mb-4 opacity-20" />
-                <p className="text-xl">Nog geen ideeën ontvangen.</p>
+                <p className="text-xl">{texts.OVERVIEW.EMPTY}</p>
               </div>
             ) : (
               ideas.sort((a, b) => b.timestamp - a.timestamp).map((idea) => (
@@ -76,10 +79,10 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
                 >
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[10px] font-mono text-gray-500 bg-white/5 px-2 py-1 rounded">
-                      {new Date(idea.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(idea.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span className="text-xs font-bold text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      IDEE #{idea.id.slice(-4).toUpperCase()}
+                      {translate(texts.OVERVIEW.IDEA_LABEL, { id: idea.id.slice(-4).toUpperCase() })}
                     </span>
                   </div>
                   
@@ -96,7 +99,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
                     className="w-full py-3 bg-brand-primary hover:opacity-90 text-white text-xs font-bold rounded flex items-center justify-center transition-all uppercase tracking-widest"
                   >
                     <Check className="w-4 h-4 mr-2" />
-                    Selecteer voor Analyse
+                    {texts.OVERVIEW.SELECT_FOR_ANALYSIS}
                   </button>
                 </div>
               ))
@@ -107,7 +110,7 @@ const IdeasOverviewModal: React.FC<IdeasOverviewModalProps> = ({
         {/* Footer info */}
         <div className="flex-shrink-0 p-4 bg-black/40 border-t border-white/5 text-center">
           <p className="text-[10px] text-gray-600 font-mono">
-            TOTAL_IDEAS: {ideas.length} // SESSION_ID: {window.location.hostname}
+            {translate(texts.OVERVIEW.FOOTER, { count: ideas.length, host: window.location.hostname })}
           </p>
         </div>
       </div>

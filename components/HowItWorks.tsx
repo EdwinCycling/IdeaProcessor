@@ -1,16 +1,17 @@
 import React from 'react';
 import { ScanLine, Send, Sparkles } from 'lucide-react';
-import { TEXTS } from '../constants/texts';
+import { useTexts } from '../services/i18n';
 
 const HowItWorks: React.FC = () => {
-  const steps = TEXTS.HOW_IT_WORKS.STEPS;
+  const texts = useTexts();
+  const steps = texts.HOW_IT_WORKS.STEPS;
 
   return (
     <section id="how-it-works" className="py-24 bg-brand-dark">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
          <div className="mb-16">
-            <span className="text-brand-primary font-mono text-sm tracking-widest uppercase mb-2 block">{TEXTS.HOW_IT_WORKS.WORKFLOW}</span>
-            <h2 className="text-4xl md:text-5xl font-bold text-white">{TEXTS.HOW_IT_WORKS.TITLE}</h2>
+           <span className="text-brand-primary font-mono text-sm tracking-widest uppercase mb-2 block">{texts.HOW_IT_WORKS.WORKFLOW}</span>
+           <h2 className="text-4xl md:text-5xl font-bold text-white">{texts.HOW_IT_WORKS.TITLE}</h2>
          </div>
 
          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12">

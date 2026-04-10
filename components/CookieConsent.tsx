@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { TEXTS } from '../constants/texts';
 import { Cookie } from 'lucide-react';
+import { useTexts } from '../services/i18n';
 
 const CookieConsent: React.FC = () => {
+  const texts = useTexts();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -29,15 +30,15 @@ const CookieConsent: React.FC = () => {
             <Cookie className="w-6 h-6 text-brand-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-white mb-2">{TEXTS.MODALS.COOKIES.TITLE}</h3>
+            <h3 className="text-lg font-bold text-white mb-2">{texts.MODALS.COOKIES.TITLE}</h3>
             <p className="text-gray-300 text-sm mb-4 leading-relaxed">
-              {TEXTS.MODALS.COOKIES.BANNER.TEXT}
+              {texts.MODALS.COOKIES.BANNER.TEXT}
             </p>
             <button 
               onClick={handleAccept}
               className="w-full bg-brand-primary hover:opacity-90 text-white font-bold py-2 px-4 rounded transition-colors"
             >
-              {TEXTS.MODALS.COOKIES.BANNER.BTN_ACCEPT}
+              {texts.MODALS.COOKIES.BANNER.BTN_ACCEPT}
             </button>
           </div>
         </div>

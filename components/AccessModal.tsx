@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, X, ArrowRight, Loader, AlertCircle } from 'lucide-react';
 import { doc, getDoc, collection, query, where, onSnapshot, limit, getDocs } from 'firebase/firestore';
 import { db, COLLECTIONS, CURRENT_SESSION_ID } from '../services/firebase';
-import { TEXTS } from '../constants/texts';
+import { useLanguage, useTexts } from '../services/i18n';
 
 interface AccessModalProps {
   onClose: () => void;
@@ -11,7 +11,9 @@ interface AccessModalProps {
   initialCode?: string;
 }
 
-const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode, initialCode = '' }) => {
+const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredCode, initialCode: _initialCode = '' }) => {
+  const texts = useTexts();
+  const { translate } = useLanguage();
   // Always start with an empty code field as per user request, even if initialCode is provided
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
@@ -159,7 +161,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
         <div className="bg-brand-panel border border-white/20 rounded-lg max-w-md w-full p-8 shadow-2xl flex flex-col items-center">
           <Loader className="w-12 h-12 text-brand-primary animate-spin mb-4" />
-          <p className="text-white font-medium">Sessie controleren...</p>
+          <p className="text-white font-medium">{texts.MODALS.ACCESS.CHECKING_SESSION}</p>
         </div>
       </div>
     );
@@ -172,15 +174,15 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
           <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
             <AlertCircle className="w-8 h-8 text-brand-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">{texts.MODALS.ACCESS.NO_SESSION_TITLE}</h2>
           <p className="text-gray-400 mb-8">
-            {TEXTS.MODALS.ACCESS.NO_SESSION_DESC}
+            {texts.MODALS.ACCESS.NO_SESSION_DESC}
           </p>
           <button
             onClick={onClose}
             className="w-full px-4 py-3 bg-brand-primary text-white font-bold rounded-sm hover:opacity-90 transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)]"
           >
-            {TEXTS.MODALS.ACCESS.CLOSE}
+            {texts.MODALS.ACCESS.CLOSE}
           </button>
         </div>
       </div>
@@ -202,12 +204,12 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
           <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
             <Lock className="w-8 h-8 text-brand-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ACCESS.TITLE}</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">{texts.MODALS.ACCESS.TITLE}</h2>
           <p className="text-gray-400 text-sm">
-            {TEXTS.MODALS.ACCESS.DESC}
+            {texts.MODALS.ACCESS.DESC}
           </p>
           <p className="text-brand-primary text-[10px] font-bold uppercase mt-2 tracking-widest animate-pulse">
-            VOLSTREKT ANONIEM
+            {texts.MODALS.ACCESS.ANONYMOUS_BADGE}
           </p>
         </div>
 
@@ -221,12 +223,12 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
                 setCode(e.target.value);
                 if (!blockedUntil) setError(false);
               }}
-              placeholder={blockedUntil ? `GEBLOKKEERD (${timeRemaining}s)` : TEXTS.MODALS.ACCESS.PLACEHOLDER}
+              placeholder={blockedUntil ? translate(texts.MODALS.ACCESS.BLOCKED_PLACEHOLDER, { seconds: timeRemaining }) : texts.MODALS.ACCESS.PLACEHOLDER}
               disabled={!!blockedUntil}
               className={`w-full bg-black/50 border ${error ? 'border-brand-primary animate-pulse' : 'border-white/20'} rounded-sm px-4 py-4 text-center text-2xl tracking-widest font-mono text-white focus:outline-none focus:border-brand-primary transition-all placeholder:text-gray-700 uppercase ${blockedUntil ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
-            {error && !blockedUntil && <p className="text-brand-primary text-xs text-center mt-2">{TEXTS.MODALS.ACCESS.ERROR}</p>}
-            {blockedUntil && <p className="text-brand-primary text-xs text-center mt-2">Te veel pogingen. Wacht {timeRemaining} seconden.</p>}
+            {error && !blockedUntil && <p className="text-brand-primary text-xs text-center mt-2">{texts.MODALS.ACCESS.ERROR}</p>}
+            {blockedUntil && <p className="text-brand-primary text-xs text-center mt-2">{translate(texts.MODALS.ACCESS.TOO_MANY_ATTEMPTS, { seconds: timeRemaining })}</p>}
           </div>
 
           <div className="flex gap-3">
@@ -235,7 +237,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
               onClick={onClose}
               className="flex-1 px-4 py-3 bg-transparent border border-white/10 text-gray-400 font-medium rounded-sm hover:text-white hover:border-white/30 transition-all"
             >
-              {TEXTS.MODALS.ACCESS.CANCEL}
+              {texts.MODALS.ACCESS.CANCEL}
             </button>
             <button
               type="submit"
@@ -247,7 +249,7 @@ const AccessModal: React.FC<AccessModalProps> = ({ onClose, onSuccess, requiredC
                   : 'bg-white/10 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {isChecking ? <Loader className="animate-spin w-4 h-4" /> : <>{TEXTS.MODALS.ACCESS.SUBMIT} <ArrowRight className="ml-2 w-4 h-4" /></>}
+              {isChecking ? <Loader className="animate-spin w-4 h-4" /> : <>{texts.MODALS.ACCESS.SUBMIT} <ArrowRight className="ml-2 w-4 h-4" /></>}
             </button>
           </div>
         </form>

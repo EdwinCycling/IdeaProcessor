@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 import { CheckCircle } from 'lucide-react';
-import { TEXTS } from '../constants/texts';
+import { useTexts } from '../services/i18n';
 
 interface SuccessScreenProps {
   onClose: () => void;
 }
 
 const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
+  const texts = useTexts();
   // Lock scroll when success screen is shown
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
@@ -38,10 +39,10 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
         </div>
         
         <h2 className="text-4xl md:text-5xl font-black text-white mb-4 neon-text-glow">
-            {TEXTS.SUCCESS.TITLE}
+            {texts.SUCCESS.TITLE}
         </h2>
         <p className="text-xl text-gray-300 mb-12">
-            {TEXTS.SUCCESS.DESC}
+            {texts.SUCCESS.DESC}
         </p>
 
         <div className="space-y-4">
@@ -49,7 +50,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ onClose }) => {
               onClick={onClose}
               className="w-full py-4 bg-white text-brand-dark font-black rounded-sm transition-all uppercase tracking-widest hover:bg-gray-200 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]"
           >
-              {TEXTS.SUCCESS.BTN_CLOSE}
+              {texts.SUCCESS.BTN_CLOSE}
           </button>
         </div>
       </div>

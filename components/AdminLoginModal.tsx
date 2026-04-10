@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Shield, X, ArrowRight, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { TEXTS } from '../constants/texts';
+import { useLanguage, useTexts } from '../services/i18n';
 
 interface AdminLoginModalProps {
   onClose: () => void;
@@ -10,6 +10,8 @@ interface AdminLoginModalProps {
 }
 
 const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess }) => {
+  const texts = useTexts();
+  const { translate } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -80,7 +82,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
     
     if (!auth) {
       setError(true);
-      setErrorMessage('Firebase is niet geconfigureerd. Controleer de .env instellingen.');
+      setErrorMessage(texts.MODALS.ADMIN.FIREBASE_ERROR);
       setLoading(false);
       return;
     }
@@ -104,17 +106,17 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
           const lockoutUntil = Date.now() + (LOCKOUT_DURATION * 1000);
           localStorage.setItem('admin_lockout_until', lockoutUntil.toString());
           setLockoutTime(LOCKOUT_DURATION);
-          setErrorMessage(`Te veel inlogpogingen. Probeer het opnieuw over ${LOCKOUT_DURATION} seconden.`);
+          setErrorMessage(translate(texts.MODALS.ADMIN.TOO_MANY_ATTEMPTS, { seconds: LOCKOUT_DURATION }));
           return;
       }
 
       console.error("Login failed:", err);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setErrorMessage(`Ongeldig e-mailadres of wachtwoord. (Poging ${newAttempts}/${MAX_ATTEMPTS})`);
+        setErrorMessage(translate(texts.MODALS.ADMIN.INVALID_CREDENTIALS, { attempt: newAttempts, max: MAX_ATTEMPTS }));
       } else if (err.code === 'auth/too-many-requests') {
-        setErrorMessage('Te veel inlogpogingen bij Firebase. Probeer het later opnieuw.');
+        setErrorMessage(texts.MODALS.ADMIN.TOO_MANY_REQUESTS);
       } else {
-        setErrorMessage('Er is een fout opgetreden bij het inloggen.');
+        setErrorMessage(texts.MODALS.ADMIN.GENERIC_ERROR);
       }
     }
   };
@@ -137,17 +139,17 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
                 <Shield className="w-8 h-8 text-neon-cyan" />
             )}
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">{TEXTS.MODALS.ADMIN.TITLE}</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">{texts.MODALS.ADMIN.TITLE}</h2>
           <p className="text-gray-400 text-sm">
             {lockoutTime > 0 
-                ? `Toegang geblokkeerd voor ${lockoutTime}s` 
-                : TEXTS.MODALS.ADMIN.DESC}
+                ? translate(texts.MODALS.ADMIN.BLOCKED_FOR, { seconds: lockoutTime }) 
+                : texts.MODALS.ADMIN.DESC}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">{TEXTS.MODALS.ADMIN.EMAIL}</label>
+            <label className="block text-xs font-mono text-gray-400 mb-1">{texts.MODALS.ADMIN.EMAIL}</label>
             <input
               ref={emailRef}
               type="email"
@@ -163,7 +165,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
             />
           </div>
           <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">{TEXTS.MODALS.ADMIN.PASS}</label>
+            <label className="block text-xs font-mono text-gray-400 mb-1">{texts.MODALS.ADMIN.PASS}</label>
             <div className="relative">
                 <input
                 type={showPassword ? "text" : "password"}
@@ -191,7 +193,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
           {error && (
             <div className="flex items-center text-brand-primary text-xs p-2 bg-brand-primary/10 rounded border border-brand-primary/20">
                 <AlertTriangle className="w-3 h-3 mr-2" />
-                {errorMessage || 'Er is iets misgegaan.'}
+                {errorMessage || texts.MODALS.ADMIN.UNKNOWN_ERROR}
             </div>
           )}
 
@@ -210,13 +212,13 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  {TEXTS.MODALS.ADMIN.BUTTON_LOADING}
+                  {texts.MODALS.ADMIN.BUTTON_LOADING}
                 </span>
               ) : lockoutTime > 0 ? (
-                   `Geblokkeerd (${lockoutTime}s)`
+                   translate(texts.MODALS.ADMIN.BLOCKED_BUTTON, { seconds: lockoutTime })
               ) : (
                 <>
-                  {TEXTS.MODALS.ADMIN.BUTTON_DEFAULT} <ArrowRight className="ml-2 w-4 h-4" />
+                  {texts.MODALS.ADMIN.BUTTON_DEFAULT} <ArrowRight className="ml-2 w-4 h-4" />
                 </>
               )}
             </button>

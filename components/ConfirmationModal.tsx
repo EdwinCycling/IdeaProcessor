@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { useTexts } from '../services/i18n';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -18,10 +19,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = 'Bevestigen',
-  cancelText = 'Annuleren',
+  confirmText,
+  cancelText,
   variant = 'danger'
 }) => {
+  const texts = useTexts();
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -81,7 +83,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               onClick={onClose}
               className="flex-1 px-4 py-2.5 bg-transparent border border-white/10 text-gray-300 font-medium rounded hover:text-white hover:border-white/30 hover:bg-white/5 transition-all"
             >
-              {cancelText}
+            {cancelText || texts.MODALS.CONFIRMATION.CANCEL}
             </button>
           )}
           <button
@@ -97,7 +99,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 : 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/20'
             }`}
           >
-            {confirmText}
+            {confirmText || texts.MODALS.CONFIRMATION.CONFIRM}
           </button>
         </div>
       </div>

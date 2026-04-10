@@ -1,7 +1,7 @@
 import React from 'react';
 import { Zap, Brain, Flag, ShieldCheck } from 'lucide-react';
 import { FeatureItem } from '../types';
-import { TEXTS } from '../constants/texts';
+import { useTexts } from '../services/i18n';
 
 const icons = [
   <Zap className="w-8 h-8 text-yellow-400" />,
@@ -10,18 +10,19 @@ const icons = [
   <ShieldCheck className="w-8 h-8 text-neon-green" />
 ];
 
-const features: FeatureItem[] = TEXTS.FEATURES.ITEMS.map((item, index) => ({
-  ...item,
-  icon: icons[index]
-}));
-
 const Features: React.FC = () => {
+  const texts = useTexts();
+  const features: FeatureItem[] = texts.FEATURES.ITEMS.map((item, index) => ({
+    ...item,
+    icon: icons[index]
+  }));
+
   return (
     <section id="features" className="py-20 bg-brand-panel relative border-y border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 font-sans">{TEXTS.FEATURES.TITLE}</h2>
-          <p className="text-gray-400 max-w-2xl mx-auto">{TEXTS.FEATURES.SUBTITLE}</p>
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 font-sans">{texts.FEATURES.TITLE}</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">{texts.FEATURES.SUBTITLE}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

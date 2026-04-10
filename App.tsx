@@ -12,13 +12,15 @@ import AdminLoginModal from './components/AdminLoginModal';
 import IdeaForm from './components/IdeaForm';
 import SuccessScreen from './components/SuccessScreen';
 import AdminDashboard from './components/AdminDashboard';
-import { db, auth, COLLECTIONS } from './services/firebase';
-import { TEXTS } from './constants/texts';
+import { db } from './services/firebase';
 import { APP_CONFIG } from './config';
+import LanguageSwitcher from './components/LanguageSwitcher';
+import { useTexts } from './services/i18n';
 
 type ViewState = 'LANDING' | 'IDEA_FORM' | 'SUCCESS' | 'ADMIN_DASHBOARD';
 
 const App: React.FC = () => {
+  const texts = useTexts();
   const [currentView, setCurrentView] = useState<ViewState>('LANDING');
   const [showAccessModal, setShowAccessModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -28,6 +30,10 @@ const App: React.FC = () => {
   const [accessCode, setAccessCode] = useState(APP_CONFIG.ACCESS_CODE);
   const [scannedCode, setScannedCode] = useState('');
   const [targetSessionId, setTargetSessionId] = useState('idea-live-event');
+
+  useEffect(() => {
+    document.title = texts.META.DOCUMENT_TITLE;
+  }, [texts]);
 
   useEffect(() => {
     if (!db) {
@@ -87,28 +93,39 @@ const App: React.FC = () => {
   // 1. Full Screen View: Admin Dashboard
   if (currentView === 'ADMIN_DASHBOARD') {
     return (
-      <AdminDashboard 
-        onLogout={handleAdminLogout} 
-        currentAccessCode={accessCode}
-        onUpdateAccessCode={setAccessCode}
-      />
+      <>
+        <LanguageSwitcher className="top-4" />
+        <AdminDashboard 
+          onLogout={handleAdminLogout} 
+          currentAccessCode={accessCode}
+          onUpdateAccessCode={setAccessCode}
+        />
+      </>
     );
   }
 
   // 2. Full Screen View: Idea Form (Mobile First)
   if (currentView === 'IDEA_FORM') {
     return (
-      <IdeaForm 
-        onCancel={() => setCurrentView('LANDING')} 
-        onSubmit={handleIdeaSubmitted} 
-        sessionId={targetSessionId}
-      />
+      <>
+        <LanguageSwitcher className="top-4" />
+        <IdeaForm 
+          onCancel={() => setCurrentView('LANDING')} 
+          onSubmit={handleIdeaSubmitted} 
+          sessionId={targetSessionId}
+        />
+      </>
     );
   }
 
   // 3. Full Screen View: Success Screen
   if (currentView === 'SUCCESS') {
-    return <SuccessScreen onClose={handleCloseSuccess} />;
+    return (
+      <>
+        <LanguageSwitcher className="top-4" />
+        <SuccessScreen onClose={handleCloseSuccess} />
+      </>
+    );
   }
 
   // 4. Default View: Landing Page
@@ -116,9 +133,10 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-dark text-white font-sans selection:bg-brand-primary selection:text-white relative">
+      <LanguageSwitcher className="top-20 md:top-4" />
       {firebaseError && isLocalhost && (
         <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-[10px] py-1 px-4 z-[9999] text-center font-mono">
-          WAARSCHUWING: Firebase is niet geconfigureerd. Controleer je .env bestand.
+          {texts.APP_WARNINGS.FIREBASE}
         </div>
       )}
       <CookieConsent />
@@ -132,16 +150,16 @@ const App: React.FC = () => {
         <section className="py-10 bg-brand-primary/10 border-y border-brand-primary/20">
              <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16 items-center opacity-70">
                  <div className="flex items-center space-x-2">
-                     <span className="font-bold text-white">{TEXTS.USP.POWERED}</span>
-                     <span className="font-mono text-neon-purple">{TEXTS.USP.AI}</span>
+                     <span className="font-bold text-white">{texts.USP.POWERED}</span>
+                     <span className="font-mono text-neon-purple">{texts.USP.AI}</span>
                  </div>
                  <div className="flex items-center space-x-2">
-                     <span className="font-bold text-white">{TEXTS.USP.REALTIME}</span>
-                     <span className="font-mono text-blue-400">{TEXTS.USP.SOCKET}</span>
+                     <span className="font-bold text-white">{texts.USP.REALTIME}</span>
+                     <span className="font-mono text-blue-400">{texts.USP.SOCKET}</span>
                  </div>
                  <div className="flex items-center space-x-2">
-                     <span className="font-bold text-white">{TEXTS.USP.SECURED}</span>
-                     <span className="font-mono text-yellow-500">{TEXTS.USP.FIREBASE}</span>
+                     <span className="font-bold text-white">{texts.USP.SECURED}</span>
+                     <span className="font-mono text-yellow-500">{texts.USP.FIREBASE}</span>
                  </div>
              </div>
         </section>
@@ -152,15 +170,15 @@ const App: React.FC = () => {
         <section className="py-24 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/20 to-transparent pointer-events-none"></div>
             <div className="max-w-4xl mx-auto text-center px-4 relative z-10">
-                <h2 className="text-4xl md:text-5xl font-black mb-6">{TEXTS.CTA_BOTTOM.TITLE}</h2>
+                <h2 className="text-4xl md:text-5xl font-black mb-6">{texts.CTA_BOTTOM.TITLE}</h2>
                 <p className="text-xl text-gray-400 mb-10">
-                    {TEXTS.CTA_BOTTOM.DESC}
+                    {texts.CTA_BOTTOM.DESC}
                 </p>
                 <button 
                   onClick={handleStartIdea}
                   className="px-10 py-5 bg-white text-brand-dark font-black text-lg rounded-sm hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] uppercase"
                 >
-                    {TEXTS.CTA_BOTTOM.BTN}
+                    {texts.CTA_BOTTOM.BTN}
                 </button>
             </div>
         </section>
